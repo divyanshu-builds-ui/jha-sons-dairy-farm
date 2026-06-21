@@ -22,30 +22,32 @@ export function drawText(doc, text, x, y, options = {}) {
 
   // Hindi — render via canvas
   const fontSize = options.size || doc.getFontSize();
-  const scale = 3; // high res
+  const scale = 4; // high res for clarity
   const canvasFontSize = fontSize * scale;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const fontWeight = options.bold ? 'bold' : 'normal';
-  ctx.font = `${fontWeight} ${canvasFontSize}px "Noto Sans Devanagari", "Mangal", "Devanagari", sans-serif`;
+  const fontStr = `${fontWeight} ${canvasFontSize}px "Noto Sans Devanagari", "Mangal", sans-serif`;
+  ctx.font = fontStr;
   const metrics = ctx.measureText(text);
   const textWidth = metrics.width;
-  const textHeight = canvasFontSize * 1.3;
-  canvas.width = Math.ceil(textWidth) + 4;
-  canvas.height = Math.ceil(textHeight) + 4;
-  
-  // Redraw after resize
-  ctx.font = `${fontWeight} ${canvasFontSize}px "Noto Sans Devanagari", "Mangal", "Devanagari", sans-serif`;
+  // Extra padding top for shirorekha and matras
+  const padTop = Math.ceil(canvasFontSize * 0.35);
+  const padBottom = Math.ceil(canvasFontSize * 0.2);
+  const totalHeight = canvasFontSize + padTop + padBottom;
+  canvas.width = Math.ceil(textWidth) + 8;
+  canvas.height = totalHeight;
+
+  // Redraw after canvas resize
+  ctx.font = fontStr;
   ctx.fillStyle = options.color ? `rgb(${options.color.join(',')})` : '#000000';
-  ctx.textBaseline = 'top';
-  ctx.fillText(text, 0, 2);
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(text, 2, canvas.height - padBottom);
 
   // Convert to image and add to PDF
   const imgData = canvas.toDataURL('image/png');
-  const pdfTextWidth = (canvas.width / scale) * (fontSize / canvasFontSize) * scale;
-  const pdfTextHeight = (canvas.height / scale) * (fontSize / canvasFontSize) * scale;
-  const mmWidth = pdfTextWidth * 0.264583;
-  const mmHeight = pdfTextHeight * 0.264583;
+  const mmWidth = (canvas.width / scale) * 0.264583;
+  const mmHeight = (canvas.height / scale) * 0.264583;
 
   let drawX = x;
   if (options.align === 'center') drawX = x - mmWidth / 2;
@@ -60,7 +62,8 @@ export function drawText(doc, text, x, y, options = {}) {
     finalHeight = mmHeight * ratio;
   }
 
-  doc.addImage(imgData, 'PNG', drawX, y - finalHeight * 0.75, finalWidth, finalHeight);
+  // Position so baseline aligns with y
+  doc.addImage(imgData, 'PNG', drawX, y - finalHeight + (padBottom / scale) * 0.264583, finalWidth, finalHeight);
 }
 
 // Set font helper (for non-Hindi text parts)
