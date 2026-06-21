@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { registerHindiFont, setFont, hasHindi } from './pdfHelper';
+import { drawText, hasHindi } from './pdfHelper';
 
 // Dynamic product order based on group + sortOrder from Firebase
 // Products are sorted by: group order first, then sortOrder within group
@@ -28,7 +28,6 @@ function getProductOrder(products, groupOrder) {
  */
 export function generateRegisterPDF({ retailers, products, orders, area, date }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
-  registerHindiFont(doc);
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
   const m = 4;
@@ -93,9 +92,9 @@ export function generateRegisterPDF({ retailers, products, orders, area, date })
   doc.text('DAILY DELIVERY SHEET', w / 2, y + 5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  setFont(doc, area, 'normal', 9);
-  doc.text(`Area: ${area}  |  Date: ${date}`, w / 2, y + 10, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  drawText(doc, `Area: ${area}  |  Date: ${date}`, w / 2, y + 10, { size: 9, align: 'center' });
+  doc.setFont('helvetica', 'bold');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.text(`Orders: ${orders.length}/${retailers.length}`, w - m, y + 5, { align: 'right' });
@@ -184,8 +183,7 @@ export function generateRegisterPDF({ retailers, products, orders, area, date })
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     const retName = (ret.name || '-').slice(0, 18);
-    setFont(doc, retName, 'bold', 7.5);
-    doc.text(retName, m + numW + 2, y + retailerRowH / 2 + 0.5);
+    drawText(doc, retName, m + numW + 2, y + retailerRowH / 2 + 0.5, { bold: true, size: 7.5 });
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
 
@@ -284,8 +282,7 @@ export function generateRegisterPDF({ retailers, products, orders, area, date })
       doc.text(`${idx + 1}`, m + 4, y + 5);
       doc.setFont('helvetica', 'bold');
       const oiRetName = oi.retailer.slice(0, 22);
-      setFont(doc, oiRetName, 'bold', 7);
-      doc.text(oiRetName, m + 10, y + 5);
+      drawText(doc, oiRetName, m + 10, y + 5, { bold: true, size: 7 });
       doc.setFont('helvetica', 'normal');
       doc.text(oi.item, m + 55, y + 5);
       doc.setFont('helvetica', 'bold');
@@ -311,7 +308,6 @@ export function generateRegisterPDF({ retailers, products, orders, area, date })
  */
 export function generateChalanPDF({ retailers, orders, area, date }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-  registerHindiFont(doc);
   const w = doc.internal.pageSize.getWidth();
   const m = 6;
   const slipH = 90;
@@ -377,15 +373,11 @@ export function generateChalanPDF({ retailers, orders, area, date }) {
 
     doc.setFontSize(7);
     doc.text(`Date: ${date}`, x + 3, y + 2);
-    setFont(doc, area, 'normal', 7);
-    doc.text(`Area: ${area}`, x + slipW - 3, y + 2, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
+    drawText(doc, `Area: ${area}`, x + slipW - 3, y + 2, { size: 7, align: 'right' });
     y += 5;
 
     const retNameChalan = ret.name || retOrders[0]?.retailer || '-';
-    setFont(doc, retNameChalan, 'bold', 8.5);
-    doc.text(retNameChalan, x + 3, y + 2);
-    doc.setFont('helvetica', 'normal');
+    drawText(doc, retNameChalan, x + 3, y + 2, { bold: true, size: 8.5 });
     doc.setFontSize(6.5);
     doc.text(`${phone}${ret.shop ? '  |  ' + ret.shop : ''}`, x + 3, y + 6);
     y += 9;
@@ -420,8 +412,7 @@ export function generateChalanPDF({ retailers, orders, area, date }) {
       cx = tX;
       doc.text(`${i + 1}`, cx + cols.num / 2, y + 3.5, { align: 'center' }); cx += cols.num;
       const itemNameChalan = item.name.slice(0, 20);
-      setFont(doc, itemNameChalan, 'bold', 6.5);
-      doc.text(itemNameChalan, cx + 1, y + 3.5); cx += cols.name;
+      drawText(doc, itemNameChalan, cx + 1, y + 3.5, { bold: true, size: 6.5 }); cx += cols.name;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6);
       doc.text(`${item.qty}`, cx + cols.qty / 2, y + 3.5, { align: 'center' }); cx += cols.qty;
@@ -471,7 +462,6 @@ export function generateChalanPDF({ retailers, orders, area, date }) {
 // Legacy for driver panel
 export function generateDeliveryPDFLegacy(orders, area, date) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-  registerHindiFont(doc);
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
   let y = 10;
@@ -499,8 +489,7 @@ export function generateDeliveryPDFLegacy(orders, area, date) {
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
     const legacyRetName = `${i + 1}. ${order.retailer}  (${order.phone || ''})`;
-    setFont(doc, order.retailer, 'bold', 9);
-    doc.text(legacyRetName, 10, y + 4);
+    drawText(doc, legacyRetName, 10, y + 4, { bold: true, size: 9 });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
