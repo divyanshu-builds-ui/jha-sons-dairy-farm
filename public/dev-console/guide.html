@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucy Garden — Emergency Console Guide</title>
+<style>
+:root { --bg: #0a0a0a; --surface: #111111; --surface2: #1a1a1a; --border: rgba(34,197,94,0.15); --accent: #22c55e; --accent2: #16a34a; --text: #f1f5f9; --text2: #9ca3af; --text3: #6b7280; --danger: #ef4444; --warn: #f59e0b; --info: #3b82f6; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif; font-size: 15px; min-height: 100vh; line-height: 1.6; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+
+.container { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
+
+/* Header */
+.guide-header { text-align: center; padding: 40px 0 30px; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+.guide-logo { width: 56px; height: 56px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 8px 32px rgba(34,197,94,0.2); }
+.guide-header h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+.guide-header p { color: var(--text3); font-size: 13px; margin-top: 6px; }
+.guide-header .back-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 8px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--accent); font-size: 12px; font-weight: 700; text-decoration: none; transition: all .2s; }
+.guide-header .back-btn:hover { background: rgba(34,197,94,0.08); }
+
+/* Section */
+.section { margin-bottom: 28px; }
+.section-title { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.section-title .num { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; }
+
+/* Steps */
+.steps { list-style: none; }
+.steps li { padding: 10px 0 10px 36px; position: relative; font-size: 14px; color: var(--text2); border-left: 2px solid var(--border); margin-left: 12px; }
+.steps li:last-child { border-left-color: transparent; }
+.steps li::before { content: attr(data-step); position: absolute; left: -11px; top: 10px; width: 20px; height: 20px; background: var(--surface); border: 2px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: var(--accent); }
+.steps li strong { color: var(--text); }
+
+/* Info cards */
+.info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 12px 0; }
+.info-card.warn { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.05); }
+.info-card.danger { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+.info-card .card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.info-card.warn .card-label { color: var(--warn); }
+.info-card.danger .card-label { color: var(--danger); }
+
+/* Table */
+.guide-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+.guide-table th { text-align: left; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 700; font-size: 12px; }
+.guide-table td { padding: 10px 12px; border: 1px solid var(--border); color: var(--text2); }
+.guide-table tr:hover td { background: var(--surface2); }
+
+/* Code */
+code { background: var(--surface2); border: 1px solid var(--border); padding: 2px 7px; border-radius: 5px; font-size: 12px; color: var(--accent); font-family: 'SF Mono', monospace; }
+
+/* Accordion */
+.accordion { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+.accordion-header { padding: 14px 18px; background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 14px; transition: background .2s; }
+.accordion-header:hover { background: var(--surface2); }
+.accordion-header .arrow { transition: transform .3s; color: var(--text3); }
+.accordion.open .accordion-header .arrow { transform: rotate(180deg); }
+.accordion-body { display: none; padding: 14px 18px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text2); line-height: 1.7; }
+.accordion.open .accordion-body { display: block; }
+
+@media (max-width: 640px) {
+  .container { padding: 16px 14px 40px; }
+  .guide-header { padding: 24px 0 20px; }
+  .guide-header h1 { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="guide-header">
+    <div class="guide-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    </div>
+    <h1>Emergency Console Guide</h1>
+    <p>Lucy Garden — Standalone Dev Console Documentation</p>
+    <a href="index.html" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Back to Console
+    </a>
+  </div>
+
+  <!-- What is this -->
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> What is this?</div>
+    <p style="color:var(--text2);margin-bottom:12px">This is an <strong>emergency backup console</strong> that works independently of the main React app. If the main app at <code>lucygarden.in</code> crashes completely, this console still works because it uses pure HTML + vanilla JavaScript + Firebase CDN.</p>
+    <div class="info-card">
+      <div class="card-label" style="color:var(--accent)">Access URLs</div>
+      <table class="guide-table">
+        <tr><th>Environment</th><th>URL</th></tr>
+        <tr><td>Production</td><td><code>https://lucygarden.in/dev-console/</code></td></tr>
+        <tr><td>Localhost</td><td><code>http://localhost:3000/dev-console/</code></td></tr>
+      </table>
+    </div>
+    <p style="color:var(--text3);font-size:13px"><strong>PIN:</strong> <code>0000</code> (default) — stored in Firebase <code>settings/devAccess</code> document.</p>
+  </div>
+
+  <!-- When to use -->
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> When to Use</div>
+    <ol class="steps">
+      <li data-step="1"><strong>Main app crashed</strong> — white screen, won't load at all</li>
+      <li data-step="2"><strong>Need to block retailers</strong> — critical bug, turn on maintenance</li>
+      <li data-step="3"><strong>User locked out</strong> — unblock or force logout from here</li>
+      <li data-step="4"><strong>Feature breaking app</strong> — disable feature flag immediately</li>
+      <li data-step="5"><strong>Emergency backup</strong> — save data before attempting fix</li>
+    </ol>
+    <div class="info-card warn">
+      <div class="card-label">Important</div>
+      <p style="color:var(--warn);font-size:13px">For regular daily work, use the React Dev Console at <code>/dev</code>. This emergency console is only for when the main app is down.</p>
+    </div>
+  </div>
+
+  <!-- Tabs Guide -->
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> Health Check Tab</div>
+    <p style="color:var(--text2);margin-bottom:12px">First thing to check when something feels wrong.</p>
+    <ol class="steps">
+      <li data-step="1">Opens automatically on login</li>
+      <li data-step="2"><strong>Response time</strong> — green (&lt;200ms) = good, red (&gt;500ms) = Firebase slow</li>
+      <li data-step="3"><strong>Active Errors</strong> — number of unresolved crashes</li>
+      <li data-step="4"><strong>Total Documents</strong> — all data in database</li>
+      <li data-step="5"><strong>Maintenance</strong> — ON means retailers are blocked</li>
+      <li data-step="6"><strong>Collection Status</strong> — each collection's document count + health</li>
+    </ol>
+    <p style="color:var(--text3);font-size:13px;margin-top:8px">If Firebase is disconnected, detailed error message + fix steps are shown.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> Error Logs Tab</div>
+    <p style="color:var(--text2);margin-bottom:12px">View all app crashes with automatic fix suggestions.</p>
+    <ol class="steps">
+      <li data-step="1">Shows unresolved errors sorted by severity</li>
+      <li data-step="2">Each error shows: <strong>message, timestamp, user, context</strong></li>
+      <li data-step="3"><strong>Suggested Fix</strong> box — automatic solution based on error pattern</li>
+      <li data-step="4">Click <strong>"Resolve"</strong> to mark as fixed (won't show again)</li>
+      <li data-step="5">Click <strong>"Clear All"</strong> to delete all logs (requires confirmation)</li>
+    </ol>
+    <div class="info-card">
+      <div class="card-label" style="color:var(--accent)">Auto-detected error types</div>
+      <table class="guide-table">
+        <tr><th>Error</th><th>Auto-suggested Fix</th></tr>
+        <tr><td>Permission Denied</td><td>Check Firestore rules</td></tr>
+        <tr><td>Chunk Load Failed</td><td>Users need hard refresh</td></tr>
+        <tr><td>Network Error</td><td>Check internet connectivity</td></tr>
+        <tr><td>Null Access</td><td>Add optional chaining in code</td></tr>
+        <tr><td>Quota Exceeded</td><td>Wait 24h or upgrade plan</td></tr>
+        <tr><td>Infinite Loop</td><td>Fix useEffect dependencies</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> Sessions Tab</div>
+    <p style="color:var(--text2);margin-bottom:12px">Full session management — device details, force logout, unblock, reset PIN.</p>
+    <ol class="steps">
+      <li data-step="1"><strong>Status indicators</strong> — Green dot + "ONLINE" badge = active, Gray = inactive, Red = blocked</li>
+      <li data-step="2"><strong>User info</strong> — Name, phone, area, shop, role (Admin badge shown)</li>
+      <li data-step="3"><strong>Device details</strong> — Device type (iPhone/Android/Windows), Browser (Chrome/Firefox/Edge), OS (iOS/Android/macOS)</li>
+      <li data-step="4"><strong>Session timing</strong> — Last login timestamp + "Expires in Xm" for active sessions</li>
+      <li data-step="5"><strong>Admin multi-device</strong> — Shows all active devices separately with individual "End" button for each</li>
+      <li data-step="6"><strong>"Force Logout"</strong> — Terminates all sessions for that user (confirmation required)</li>
+      <li data-step="7"><strong>"Unblock"</strong> — Removes login lockout after 5 wrong PIN attempts</li>
+      <li data-step="8"><strong>"Reset PIN"</strong> — Resets user's PIN to default 1234 (confirmation required)</li>
+      <li data-step="9"><strong>"Logout All"</strong> — Kicks every online user out at once (emergency only)</li>
+    </ol>
+    <div class="info-card warn">
+      <div class="card-label">Common scenarios</div>
+      <p style="color:var(--warn);font-size:13px">
+        <strong>"I can't login"</strong> → Check if BLOCKED → Unblock<br>
+        <strong>"Forgot PIN"</strong> → Reset PIN → Tell them new PIN is 1234<br>
+        <strong>"Someone else using my account"</strong> → Force Logout → They'll need to re-login<br>
+        <strong>Admin on multiple devices</strong> → See all devices → End specific one if needed
+      </p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">6</span> Feature Flags Tab</div>
+    <p style="color:var(--text2);margin-bottom:12px">Disable broken features without deploying code.</p>
+    <ol class="steps">
+      <li data-step="1">See all features with ON/OFF toggle</li>
+      <li data-step="2">Click toggle → Confirmation popup</li>
+      <li data-step="3">Change takes effect <strong>immediately</strong> for all users</li>
+      <li data-step="4">Retailers see change on next page load</li>
+    </ol>
+    <p style="color:var(--text3);font-size:13px;margin-top:8px"><strong>Use case:</strong> PDF Invoice feature is crashing → Disable "PDF Invoice" flag → App stops crashing → Fix code → Re-enable flag.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">7</span> Backup Tab</div>
+    <p style="color:var(--text2);margin-bottom:12px">Create emergency database snapshot.</p>
+    <ol class="steps">
+      <li data-step="1">Click <strong>"Create Emergency Backup Now"</strong></li>
+      <li data-step="2">Saves: users, products, settings, retailer_balances, ledger, orders</li>
+      <li data-step="3">Success message shows document count</li>
+      <li data-step="4">Old backups listed below — can delete if not needed</li>
+    </ol>
+    <div class="info-card danger">
+      <div class="card-label">Always backup before</div>
+      <p style="color:var(--danger);font-size:13px">Bulk price change, DB cleanup, settings change, emergency shutdown, or any major update.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">8</span> Maintenance Tab</div>
+    <p style="color:var(--text2);margin-bottom:12px">Control app access. Block/unblock all retailers.</p>
+    <ol class="steps">
+      <li data-step="1"><strong>Toggle Maintenance</strong> — ON blocks all retailers, OFF restores access</li>
+      <li data-step="2"><strong>Clear Banner</strong> — removes any active announcement banner</li>
+      <li data-step="3"><strong>Emergency Shutdown</strong> — Maintenance ON + Kill all sessions + Clear banner</li>
+      <li data-step="4"><strong>Restore Access</strong> — Turns OFF maintenance, app goes live</li>
+    </ol>
+    <p style="color:var(--text3);font-size:13px;margin-top:8px">Admin & Developer can still access during maintenance. Only retailers are blocked.</p>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section">
+    <div class="section-title"><span class="num">9</span> FAQ</div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">How does retailer blocking work? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Admin blocks from Retailers page using inline form (reason dropdown + note). Blocked retailer can still login with correct PIN but only sees "Account Suspended" page showing reason + dues. They can access Support page to raise unblock request. Anti-spam prevents duplicate tickets (same category limited to 1 per 24h). Unblock from Retailers page or Sessions.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">Dispatch Slip vs Invoice PDF? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Retailer Track page now has 2 different PDFs: <strong>Dispatch Slip</strong> (blue themed, royal-700) when order is Dispatched — mentions quantities may adjust. <strong>Final Invoice</strong> (green themed, mint-700) when Delivered — final bill. Two separate functions in TrackOrder.js.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">Dashboard donut chart not showing? <span class="arrow">▼</span></div>
+      <div class="accordion-body">The delivery progress donut chart is now always visible — shows 0% empty ring when no orders. If it's missing entirely, check Dashboard.js for the SVG section. Uses pure SVG + Framer Motion, no external chart library.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">Report PDF not downloading from admin dashboard? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Previously crashed because <code>stats.monthRevenue</code> was undefined. Fixed — now uses available data (retailers, pending, overdue). If still failing, check browser console for errors in the PDF generation onclick handler.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">PIN not working? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Default PIN is <code>0000</code>. If changed, check Firebase Console → Firestore → <code>settings</code> collection → <code>devAccess</code> document → <code>pin</code> field.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">Console won't load at all? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Check internet connection. This console needs Firebase CDN to load (online only). If Firebase itself is down, nothing will work — check <code>status.firebase.google.com</code>.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">Difference between this and React Dev Console? <span class="arrow">▼</span></div>
+      <div class="accordion-body">React Dev Console (<code>/dev</code>) has 20+ tools, charts, analytics — full featured. This emergency console has only 6 critical tools. Use React console for daily work, this one only when React app is dead.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">Can retailers access this? <span class="arrow">▼</span></div>
+      <div class="accordion-body">No. It's PIN protected. Even if someone finds the URL, they can't get in without the PIN. After 5 wrong attempts, page reloads.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">How to change the PIN? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Firebase Console → Firestore → <code>settings</code> collection → <code>devAccess</code> document → change <code>pin</code> field value.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">How to reset a retailer's PIN? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Sessions tab → Find the user → Click "Reset PIN" → Confirm. PIN resets to <code>1234</code>. Tell the retailer their new PIN.</div>
+    </div>
+
+    <div class="accordion" onclick="this.classList.toggle('open')">
+      <div class="accordion-header">Backup failed with permission error? <span class="arrow">▼</span></div>
+      <div class="accordion-body">Check Firestore rules — <code>backups</code> collection needs read/write permission. Deploy rules: <code>npx firebase deploy --only firestore:rules</code></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding-top:20px;border-top:1px solid var(--border);color:var(--text3);font-size:12px">
+    <p>Lucy Garden Emergency Console • Built by Divyanshu Gupta</p>
+    <p style="margin-top:4px;font-size:11px">6 tools • PIN protected • No React dependency</p>
+  </div>
+
+</div>
+</body>
+</html>

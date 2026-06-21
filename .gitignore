@@ -1,0 +1,10 @@
+node_modules/
+build/
+.env
+.env.local
+.env.production
+*.pdf
+roadmap.html
+client.html
+docs/pdf/
+.DS_Store

@@ -1,0 +1,175 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // App write key validation — every write must include this
+    function isApp() {
+      return request.resource.data._appKey == 'LG_2026_dG7xPmKv9Q';
+    }
+
+    // For updates where _appKey might already exist in doc
+    function isAppUpdate() {
+      return request.resource.data._appKey == 'LG_2026_dG7xPmKv9Q';
+    }
+
+
+
+    // ===== USERS =====
+    // Read: allowed (app needs to verify login)
+    // Write: only with app key + validation
+    match /users/{phone} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['name', 'phone', 'role', 'pin'])
+                    && request.resource.data.role in ['retailer', 'admin']
+                    && request.resource.data.phone.size() == 10;
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== ORDERS =====
+    // Read: allowed (retailers see their orders)
+    // Write: app key + validation
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['phone', 'items', 'total', 'status'])
+                    && request.resource.data.phone.size() == 10
+                    && request.resource.data.total >= 0;
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== PRODUCTS =====
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['name', 'price'])
+                    && request.resource.data.price >= 0;
+      allow update: if isAppUpdate()
+                    && request.resource.data.price >= 0;
+      allow delete: if isApp();
+    }
+
+    // ===== LEDGER (Critical — hisaab) =====
+    match /ledger/{entryId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['retailerId', 'amount', 'type'])
+                    && request.resource.data.type in ['debit', 'credit']
+                    && request.resource.data.amount >= 0;
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== RETAILER BALANCES (Critical — dues) =====
+    match /retailer_balances/{phone} {
+      allow read: if true;
+      allow write: if isApp();
+    }
+
+    // ===== SETTINGS =====
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isApp();
+    }
+
+    // ===== SUPPORT TICKETS =====
+    match /support_tickets/{ticketId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['phone', 'subject', 'message'])
+                    && request.resource.data.phone.size() == 10;
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== ANNOUNCEMENTS =====
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['message', 'type'])
+                    && request.resource.data.type in ['info', 'warning', 'success', 'urgent'];
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== APP ERRORS (auto-logged — no appKey since logged from error handlers) =====
+    match /app_errors/{errorId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    // ===== APP RATINGS =====
+    match /app_ratings/{ratingId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['phone', 'rating'])
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+      allow update: if false;
+      allow delete: if isApp();
+    }
+
+    // ===== AUDIT LOG (immutable entries) =====
+    match /audit_log/{logId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['action', 'performedBy']);
+      allow update: if false;
+      allow delete: if isApp();
+    }
+
+    // ===== COMPANY ORDERS =====
+    match /company_orders/{docId} {
+      allow read: if true;
+      allow write: if isApp();
+    }
+
+    // ===== DAILY STOCK =====
+    match /daily_stock/{docId} {
+      allow read: if true;
+      allow write: if isApp();
+    }
+
+    // ===== BACKUPS =====
+    match /backups/{backupId} {
+      allow read: if true;
+      allow create: if isApp();
+      allow update: if false;
+      allow delete: if isApp();
+    }
+
+    // ===== NOTIFICATIONS =====
+    match /notifications/{notifId} {
+      allow read: if true;
+      allow create: if isApp();
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== SCHEDULED TASKS =====
+    match /scheduled_tasks/{taskId} {
+      allow read: if true;
+      allow create: if isApp();
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== ORDER HISTORY =====
+    match /order_history/{docId} {
+      allow read: if true;
+      allow create: if isApp()
+                    && request.resource.data.keys().hasAll(['phone', 'items', 'total']);
+      allow update: if isAppUpdate();
+      allow delete: if isApp();
+    }
+
+    // ===== DENY EVERYTHING ELSE =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
