@@ -14,7 +14,8 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
 // Enable offline persistence — reads from local cache first, reduces Firebase reads by 60-80%
-enableIndexedDbPersistence(db).catch(() => {});
+// Disabled for fresh installs — causes "client is offline" errors when no cache exists
+// enableIndexedDbPersistence(db).catch(() => {});
 
 // Lightweight usage counter (localStorage based, no circular deps)
 const _track = (type) => {

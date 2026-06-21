@@ -4,6 +4,7 @@ import { Calendar, RefreshCw, Printer, X, Check, Download, Undo2, ChevronLeft, C
 import { db, collection, getDocs, setDoc, addDoc, doc, getDoc, updateDoc, query, where } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
+import { registerHindiFont, setFont, hasHindi } from '../../utils/pdfHelper';
 import { Link } from 'react-router-dom';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 import { useConfirm } from '../../components/ConfirmModal';
@@ -116,7 +117,7 @@ export default function DailyLedger() {
     return p.price || 0;
   };
 
-  products.filter(p => p.group && p.type === 'daily').sort((a, b) => parseToGrams(a) - parseToGrams(b)).forEach(p => {
+  products.filter(p => p.group && p.type === 'daily').sort((a, b) => parseToGrams(b) - parseToGrams(a)).forEach(p => {
     const g = p.group;
     if (!groupMap[g]) { groupMap[g] = []; }
     groupMap[g].push({ key: p.name, label: p.label || p.name });
@@ -133,11 +134,11 @@ export default function DailyLedger() {
   // Build SEASONAL_GROUPS dynamically
   const SEASONAL_GROUPS = [];
   const sGroupMap = {};
-  products.filter(p => p.group && p.type === 'seasonal').sort((a, b) => parseToGrams(a) - parseToGrams(b)).forEach(p => {
+  products.filter(p => p.group && p.type === 'seasonal').sort((a, b) => parseToGrams(b) - parseToGrams(a)).forEach(p => {
     if (!sGroupMap[p.group]) { sGroupMap[p.group] = []; SEASONAL_GROUPS.push({ group: p.group, items: sGroupMap[p.group] }); }
     sGroupMap[p.group].push({ key: p.name, label: p.label || p.name });
   });
-  const noGroupSeasonal = products.filter(p => p.type === 'seasonal' && !p.group).sort((a, b) => parseToGrams(a) - parseToGrams(b));
+  const noGroupSeasonal = products.filter(p => p.type === 'seasonal' && !p.group).sort((a, b) => parseToGrams(b) - parseToGrams(a));
   if (noGroupSeasonal.length > 0) {
     SEASONAL_GROUPS.push({ group: 'OTHER', items: noGroupSeasonal.map(p => ({ key: p.name, label: p.label || p.name })) });
   }
@@ -363,6 +364,7 @@ export default function DailyLedger() {
   // ===== PDF =====
   const printPDF = () => {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+    registerHindiFont(pdf);
     const w = pdf.internal.pageSize.getWidth();
     const h = pdf.internal.pageSize.getHeight();
     const m = 3;
@@ -379,7 +381,9 @@ export default function DailyLedger() {
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(0, 0, 0);
     pdf.text('LUCY GARDEN', m, y + 5);
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+    setFont(pdf, areaName, 'normal', 10);
     pdf.text(`${areaName}  |  ${dateStr}`, w - m, y + 5, { align: 'right' });
+    pdf.setFont('helvetica', 'normal');
     y += 8; pdf.setDrawColor(0); pdf.setLineWidth(0.3); pdf.line(m, y, w - m, y); y += 2;
 
     const drawHeader = () => {
@@ -429,8 +433,10 @@ export default function DailyLedger() {
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(0, 0, 0);
       pdf.text(`${i + 1}`, rx + siW / 2, y + 6.5, { align: 'center' }); rx += siW;
       pdf.setFillColor(255, 255, 255); pdf.rect(rx, y, retW, rowH, 'FD');
-      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8);
-      pdf.setFontSize(10); pdf.text((ret.name || '-').slice(0, 25), rx + 1.5, y + 6.5, { maxWidth: retW - 3 }); pdf.setTextColor(0,0,0);
+      const retNamePdf = (ret.name || '-').slice(0, 25);
+      setFont(pdf, retNamePdf, 'bold', 10);
+      pdf.text(retNamePdf, rx + 1.5, y + 6.5, { maxWidth: retW - 3 }); pdf.setTextColor(0,0,0);
+      pdf.setFont('helvetica', 'normal');
       rx += retW;
       ALL_FIXED_KEYS.forEach(key => { pdf.setFillColor(255, 255, 255); pdf.rect(rx, y, qtyW, rowH, 'FD'); const qty = oData?.items[key] || 0; if (qty > 0) { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(qtyFontSize); pdf.text(`${qty}`, rx + qtyW / 2, y + 7, { align: 'center' }); } rx += qtyW; });
       pdf.setFillColor(255, 255, 255); pdf.rect(rx, y, totalW, rowH, 'FD');
@@ -474,6 +480,7 @@ export default function DailyLedger() {
 
   const printSeasonalPDF = () => {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    registerHindiFont(pdf);
     const w = pdf.internal.pageSize.getWidth();
     const h = pdf.internal.pageSize.getHeight();
     const m = 12;
@@ -520,8 +527,10 @@ export default function DailyLedger() {
 
       // Retailer header
       pdf.setFillColor(248, 250, 252); pdf.rect(m, y, w - m * 2, 9, 'F');
-      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(15, 23, 42);
-      pdf.text(`${i + 1}. ${(ret.name || '-').slice(0, 30)}`, m + 3, y + 6);
+      const sRetName = `${i + 1}. ${(ret.name || '-').slice(0, 30)}`;
+      setFont(pdf, ret.name, 'bold', 10);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(sRetName, m + 3, y + 6);
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
       pdf.text(ret.phone || '', w - m - 3, y + 6, { align: 'right' });
       y += 11;

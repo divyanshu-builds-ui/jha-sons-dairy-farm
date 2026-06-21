@@ -133,6 +133,7 @@ export default function Login({ onLogin }) {
       if (userDoc.exists() && userDoc.data().blocked) { setStep('pin'); setLoading(false); return; }
       setStep('pin');
     } catch (err) {
+      console.error('PHONE SUBMIT ERROR:', err);
       setError('Network error. Try again.');
     }
     setLoading(false);
@@ -188,6 +189,7 @@ export default function Login({ onLogin }) {
 
       await createSession({ ...data, phone });
     } catch (err) {
+      console.error('PIN SUBMIT ERROR:', err);
       setError('Network error. Try again.');
       setLoading(false);
     }

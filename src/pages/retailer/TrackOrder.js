@@ -5,6 +5,7 @@ import { db, collection, doc, getDoc, updateDoc, deleteDoc, query, where } from 
 import { onSnapshot } from 'firebase/firestore';
 import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
+import { registerHindiFont, setFont, hasHindi } from '../../utils/pdfHelper';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 import { useConfirm } from '../../components/ConfirmModal';
 
@@ -12,6 +13,7 @@ import { useConfirm } from '../../components/ConfirmModal';
 
 function downloadDispatchSlipPDF(order, user, shopPhone) {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  registerHindiFont(pdf);
   const w = pdf.internal.pageSize.getWidth();
   const m = 15;
   let y = m;
@@ -41,7 +43,7 @@ function downloadDispatchSlipPDF(order, user, shopPhone) {
   // Customer box
   pdf.setDrawColor(1, 54, 228); pdf.setLineWidth(0.4); pdf.roundedRect(m, y, w - m * 2, 20, 2, 2, 'S');
   pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.text('Deliver To:', m + 4, y + 7);
-  pdf.setFontSize(11); pdf.text(user.name || '-', m + 30, y + 7);
+  setFont(pdf, user.name, 'bold', 11); pdf.text(user.name || '-', m + 30, y + 7);
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
   pdf.text(`Ph: ${user.phone || ''}`, m + 4, y + 14);
   if (user.shop) pdf.text(`Shop: ${user.shop}`, m + 70, y + 14);
@@ -74,7 +76,7 @@ function downloadDispatchSlipPDF(order, user, shopPhone) {
     pdf.rect(m, y, tW, rowH, 'F'); cx = m;
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
     pdf.text(`${idx + 1}`, cx + cols.num / 2, y + 5.5, { align: 'center' }); cx += cols.num;
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.text(item.name || '', cx + 4, y + 5.5); cx += cols.name;
+    setFont(pdf, item.name, 'bold', 9); pdf.text(item.name || '', cx + 4, y + 5.5); cx += cols.name;
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
     const qty = item.actual || item.qty; pdf.text(`${qty}`, cx + cols.qty / 2, y + 5.5, { align: 'center' }); cx += cols.qty;
     const rate = item.unitPrice || 0; pdf.text(rate > 0 ? `${rate.toFixed(2)}` : '-', cx + cols.rate / 2, y + 5.5, { align: 'center' }); cx += cols.rate;
@@ -105,6 +107,7 @@ function downloadDispatchSlipPDF(order, user, shopPhone) {
 
 function downloadInvoicePDF(order, user, shopPhone) {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  registerHindiFont(pdf);
   const w = pdf.internal.pageSize.getWidth();
   const m = 15;
   let y = m;
@@ -140,7 +143,7 @@ function downloadInvoicePDF(order, user, shopPhone) {
   // Customer box
   pdf.setDrawColor(23, 169, 102); pdf.setLineWidth(0.4); pdf.roundedRect(m, y, w - m * 2, 20, 2, 2, 'S');
   pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.text('Bill To:', m + 4, y + 7);
-  pdf.setFontSize(11); pdf.text(user.name || '-', m + 22, y + 7);
+  setFont(pdf, user.name, 'bold', 11); pdf.text(user.name || '-', m + 22, y + 7);
   pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
   pdf.text(`Ph: ${user.phone || ''}`, m + 4, y + 14);
   if (user.shop) pdf.text(`Shop: ${user.shop}`, m + 70, y + 14);
@@ -173,7 +176,7 @@ function downloadInvoicePDF(order, user, shopPhone) {
     pdf.rect(m, y, tW, rowH, 'F'); cx = m;
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
     pdf.text(`${idx + 1}`, cx + cols.num / 2, y + 5.5, { align: 'center' }); cx += cols.num;
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.text(item.name || '', cx + 4, y + 5.5); cx += cols.name;
+    setFont(pdf, item.name, 'bold', 9); pdf.text(item.name || '', cx + 4, y + 5.5); cx += cols.name;
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
     const qty = item.actual || item.qty; pdf.text(`${qty}`, cx + cols.qty / 2, y + 5.5, { align: 'center' }); cx += cols.qty;
     const rate = item.unitPrice || 0; pdf.text(rate > 0 ? `${rate.toFixed(2)}` : '-', cx + cols.rate / 2, y + 5.5, { align: 'center' }); cx += cols.rate;
