@@ -275,7 +275,7 @@ lucy-garden/
 | File | What it does |
 |------|-------------|
 | `errorLogger.js` | Catches all app crashes automatically. Stores in Firebase. Matches errors with solutions. |
-| `config.js` | **🎯 Central config** — app version (`2.0.0`), name, tagline, developer info, phone. Single source of truth. |
+| `config.js` | **🎯 Central config** — app version (`2.6.0`), name, tagline, developer info, phone. Single source of truth. |
 | `autoCleanup.js` | **Auto-cleanup on app load** — runs once/day, deletes old errors (7d), old orders/audit (1yr). Respects `autoCleanup` setting. Logs to audit_log. |
 | `usageTracker.js` | **Tracks Firestore usage** (reads/writes/deletes) locally, syncs to Firebase every 5 min + on page unload. |
 | `price.js` | Formats numbers as ₹ prices (e.g., ₹1,250.00) |
@@ -475,7 +475,7 @@ git push
 ---
 
 *Built with ♥ by Divyanshu Gupta*
-*Last updated: June 2026 | Version 2.5.0*
+*Last updated: June 2026 | Version 2.6.0*
 
 ---
 
@@ -485,7 +485,7 @@ git push
 |---------|-------------|
 | **PDF Code for Groups** | Each product group can have an optional short PDF Code (2-5 chars). Used as column header in Daily Sheet PDF instead of full group name. Set/edit inline from Manage Groups modal. Auto-suggested from group name. |
 | **Group Name Limit 20** | Group name limit increased to 20 chars (was 10). Name used in app UI, Code used in PDF. |
-| **Size-based Product Sorting** | Products within each group sorted by size (label parsed to grams: 100g→200g→500g→1kg→2kg). Uses `parseToGrams` helper. |
+| **Size-based Product Sorting** | Products within each group sorted by size — **big to small** (1L→500ml→200g). Uses `parseToGrams` helper with descending sort. |
 | **Seasonal PDF (List Format)** | Completely rewritten — now A4 Portrait list format. Each retailer as a block with grouped items inline. Only shows retailers with seasonal orders. No grid columns, no tight layout. |
 | **Rate Card PDF (Grouped)** | Rewritten — products shown in group-wise sections with bordered headers. Group name + code in brackets. B&W print friendly. |
 | **Retailer Price List PDF** | Updated to match Rate Card format — group-wise sections, code in brackets, price disclaimer at top. |
