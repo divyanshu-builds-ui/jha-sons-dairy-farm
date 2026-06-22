@@ -12,11 +12,14 @@ service cloud.firestore {
       return request.resource.data._appKey == 'LG_2026_dG7xPmKv9Q';
     }
 
+    // For deletes — check existing doc has appKey (was created by app)
+    function isAppDelete() {
+      return resource.data._appKey == 'LG_2026_dG7xPmKv9Q';
+    }
+
 
 
     // ===== USERS =====
-    // Read: allowed (app needs to verify login)
-    // Write: only with app key + validation
     match /users/{phone} {
       allow read: if true;
       allow create: if isApp()
@@ -24,12 +27,10 @@ service cloud.firestore {
                     && request.resource.data.role in ['retailer', 'admin']
                     && request.resource.data.phone.size() == 10;
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== ORDERS =====
-    // Read: allowed (retailers see their orders)
-    // Write: app key + validation
     match /orders/{orderId} {
       allow read: if true;
       allow create: if isApp()
@@ -37,7 +38,7 @@ service cloud.firestore {
                     && request.resource.data.phone.size() == 10
                     && request.resource.data.total >= 0;
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== PRODUCTS =====
@@ -48,10 +49,10 @@ service cloud.firestore {
                     && request.resource.data.price >= 0;
       allow update: if isAppUpdate()
                     && request.resource.data.price >= 0;
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
-    // ===== LEDGER (Critical — hisaab) =====
+    // ===== LEDGER =====
     match /ledger/{entryId} {
       allow read: if true;
       allow create: if isApp()
@@ -59,19 +60,23 @@ service cloud.firestore {
                     && request.resource.data.type in ['debit', 'credit']
                     && request.resource.data.amount >= 0;
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
-    // ===== RETAILER BALANCES (Critical — dues) =====
+    // ===== RETAILER BALANCES =====
     match /retailer_balances/{phone} {
       allow read: if true;
-      allow write: if isApp();
+      allow create: if isApp();
+      allow update: if isAppUpdate();
+      allow delete: if isAppDelete();
     }
 
     // ===== SETTINGS =====
     match /settings/{docId} {
       allow read: if true;
-      allow write: if isApp();
+      allow create: if isApp();
+      allow update: if isAppUpdate();
+      allow delete: if isAppDelete();
     }
 
     // ===== SUPPORT TICKETS =====
@@ -81,7 +86,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasAll(['phone', 'subject', 'message'])
                     && request.resource.data.phone.size() == 10;
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== ANNOUNCEMENTS =====
@@ -91,10 +96,10 @@ service cloud.firestore {
                     && request.resource.data.keys().hasAll(['message', 'type'])
                     && request.resource.data.type in ['info', 'warning', 'success', 'urgent'];
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
-    // ===== APP ERRORS (auto-logged — no appKey since logged from error handlers) =====
+    // ===== APP ERRORS =====
     match /app_errors/{errorId} {
       allow read: if true;
       allow create: if true;
@@ -110,28 +115,32 @@ service cloud.firestore {
                     && request.resource.data.rating >= 1
                     && request.resource.data.rating <= 5;
       allow update: if false;
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
-    // ===== AUDIT LOG (immutable entries) =====
+    // ===== AUDIT LOG =====
     match /audit_log/{logId} {
       allow read: if true;
       allow create: if isApp()
                     && request.resource.data.keys().hasAll(['action', 'performedBy']);
       allow update: if false;
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== COMPANY ORDERS =====
     match /company_orders/{docId} {
       allow read: if true;
-      allow write: if isApp();
+      allow create: if isApp();
+      allow update: if isAppUpdate();
+      allow delete: if isAppDelete();
     }
 
     // ===== DAILY STOCK =====
     match /daily_stock/{docId} {
       allow read: if true;
-      allow write: if isApp();
+      allow create: if isApp();
+      allow update: if isAppUpdate();
+      allow delete: if isAppDelete();
     }
 
     // ===== BACKUPS =====
@@ -139,7 +148,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isApp();
       allow update: if false;
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== NOTIFICATIONS =====
@@ -147,7 +156,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isApp();
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== SCHEDULED TASKS =====
@@ -155,7 +164,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isApp();
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== ORDER HISTORY =====
@@ -164,7 +173,7 @@ service cloud.firestore {
       allow create: if isApp()
                     && request.resource.data.keys().hasAll(['phone', 'items', 'total']);
       allow update: if isAppUpdate();
-      allow delete: if isApp();
+      allow delete: if isAppDelete();
     }
 
     // ===== DENY EVERYTHING ELSE =====
