@@ -65,9 +65,17 @@ export default function Retailers() {
       if (areasDoc.exists()) setAreas(areasDoc.data().list || []);
       const appDoc = await getDoc(doc(db, 'settings', 'app'));
       if (appDoc.exists() && appDoc.data().defaultPin) setDefaultPin(appDoc.data().defaultPin);
-      const balSnap = await getDocs(collection(db, 'retailer_balances'));
+      // Calculate balances from ledger (source of truth)
+      const allLedgerSnap = await getDocs(collection(db, 'ledger'));
       const balMap = {};
-      balSnap.docs.forEach(d => { balMap[d.id] = d.data().balance || 0; });
+      allLedgerSnap.docs.forEach(d => {
+        const e = d.data();
+        const rid = e.retailerId;
+        if (!rid) return;
+        if (!balMap[rid]) balMap[rid] = 0;
+        if (e.type === 'debit') balMap[rid] += (e.amount || 0);
+        else balMap[rid] -= (e.amount || 0);
+      });
       setBalances(balMap);
     } catch (err) {}
     setLoading(false);

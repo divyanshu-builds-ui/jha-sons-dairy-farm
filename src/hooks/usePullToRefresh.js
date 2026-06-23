@@ -66,14 +66,13 @@ export function usePullToRefresh(onRefresh) {
     const onTouchEnd = () => {
       if (!activated) { isPulling = false; return; }
       if (pullRef.current >= THRESHOLD) {
-        // Show full pull state briefly before refresh
         setPullDistance(THRESHOLD);
         setTimeout(() => {
           refreshFn();
           pullRef.current = 0;
           setPulling(false);
           setPullDistance(0);
-        }, 200);
+        }, 100);
       } else {
         // Didn't reach threshold — snap back
         pullRef.current = 0;

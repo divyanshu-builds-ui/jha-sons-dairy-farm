@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, BookOpen, AlertTriangle, Truck, Clock, Package, CheckCircle2, Flame, Lightbulb, IndianRupee, Info } from 'lucide-react';
 import { db, doc, getDoc, collection, query, where, orderBy, getDocs, limit, cachedGetDoc } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
-import { DashboardSkeleton } from '../../components/LoadingSkeleton';
+import { useCache } from '../../hooks/useCache';
 
 const GREETINGS = [
   'Your orders, delivered fresh daily.',
@@ -100,82 +100,69 @@ const stagger = { animate: { transition: { staggerChildren: 0.08 } } };
 const fadeUp = { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
 export default function Home() {
-  const [balance, setBalance] = useState(0);
-  const [lastPayment, setLastPayment] = useState(null);
-  const [todayOrder, setTodayOrder] = useState(null);
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [monthStats, setMonthStats] = useState({ orders: 0, amount: 0, payments: 0 });
-  const [streak, setStreak] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [timing, setTiming] = useState({ orderStart: 12, orderEnd: 16, deliveryStart: 6, deliveryEnd: 12 });
-
   const user = JSON.parse(localStorage.getItem('lg_user') || '{}');
+
+  const { data: homeData, loading } = useCache(`home_${user.phone}`, async () => {
+    let balance = 0, lastPayment = null, todayOrder = null, recentOrders = [], monthStats = { orders: 0, amount: 0, payments: 0 }, streak = 0, timing = { orderStart: 12, orderEnd: 16, deliveryStart: 6, deliveryEnd: 12 };
+
+    const appDoc = await cachedGetDoc(doc(db, 'settings', 'app'));
+    if (appDoc.exists()) {
+      const ad = appDoc.data();
+      timing = { orderStart: ad.orderStart || 12, orderEnd: ad.orderEnd || 16, deliveryStart: ad.deliveryStart || 6, deliveryEnd: ad.deliveryEnd || 12 };
+    }
+
+    // Calculate due from ledger (source of truth)
+    const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', user.phone)));
+    const ledgerEntries = ledgerSnap.docs.map(d => d.data());
+    balance = ledgerEntries.reduce((sum, e) => {
+      if (e.type === 'debit') return sum + (e.amount || 0);
+      return sum - (e.amount || 0);
+    }, 0);
+
+    // Last payment
+    const credits = ledgerEntries.filter(e => e.type === 'credit').sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    if (credits.length > 0) lastPayment = { date: credits[0].date, amount: credits[0].amount };
+
+    const ordersSnap = await getDocs(query(collection(db, 'orders'), where('phone', '==', user.phone), orderBy('createdAt', 'desc'), limit(30)));
+    const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    const todayStr = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    todayOrder = allOrders.find(o => (o.date === todayStr || o.date === tomorrowStr) && o.status !== 'Cancelled') || null;
+
+    recentOrders = allOrders.slice(0, 4);
+
+    let streakCount = 0;
+    const today = new Date();
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      if (allOrders.some(o => o.date === dateStr && o.status !== 'Cancelled')) streakCount++;
+      else if (i > 0) break;
+    }
+    streak = streakCount;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthOrders = allOrders.filter(o => new Date(o.createdAt) >= monthStart && o.status !== 'Cancelled' && o.status !== 'Returned');
+    const monthAmount = monthOrders.reduce((s, o) => s + (o.actualTotal || o.total || 0), 0);
+
+    const monthPayments = ledgerEntries.filter(e => e.type === 'credit' && new Date(e.createdAt) >= monthStart).reduce((s, e) => s + (e.amount || 0), 0);
+
+    monthStats = { orders: monthOrders.length, amount: monthAmount, payments: monthPayments };
+
+    return { balance, lastPayment, todayOrder, recentOrders, monthStats, streak, timing };
+  }, [user.phone]);
+  // eslint-disable-next-line
+
+  const { balance = 0, lastPayment = null, todayOrder = null, recentOrders = [], monthStats = { orders: 0, amount: 0, payments: 0 }, streak = 0, timing = { orderStart: 12, orderEnd: 16, deliveryStart: 6, deliveryEnd: 12 } } = homeData || {};
 
   const dailyGreeting = useMemo(() => GREETINGS[getDayIndex(GREETINGS.length)], []);
   const dailyTip = useMemo(() => DAILY_TIPS[getDayIndex(DAILY_TIPS.length)], []);
   const dailyGradient = useMemo(() => GRADIENTS[getDayIndex(GRADIENTS.length)], []);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Fetch timing settings (cached)
-        const appDoc = await cachedGetDoc(doc(db, 'settings', 'app'));
-        if (appDoc.exists()) {
-          const ad = appDoc.data();
-          setTiming({ orderStart: ad.orderStart || 12, orderEnd: ad.orderEnd || 16, deliveryStart: ad.deliveryStart || 6, deliveryEnd: ad.deliveryEnd || 12 });
-        }
-
-        const balDoc = await getDoc(doc(db, 'retailer_balances', user.phone));
-        if (balDoc.exists()) {
-          const d = balDoc.data();
-          setBalance(d.balance || 0);
-          if (d.lastPaymentDate) setLastPayment({ date: d.lastPaymentDate, amount: d.lastPaymentAmount });
-        }
-
-        const ordersSnap = await getDocs(query(collection(db, 'orders'), where('phone', '==', user.phone), orderBy('createdAt', 'desc'), limit(30)));
-        const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // Today's order
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        const todayStr = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        const todayOrd = allOrders.find(o => (o.date === todayStr || o.date === tomorrowStr) && o.status !== 'Cancelled');
-        setTodayOrder(todayOrd || null);
-
-        setRecentOrders(allOrders.slice(0, 4));
-
-        // Streak calculation
-        let streakCount = 0;
-        const today = new Date();
-        for (let i = 0; i < 30; i++) {
-          const checkDate = new Date(today);
-          checkDate.setDate(checkDate.getDate() - i);
-          const dateStr = checkDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-          if (allOrders.some(o => o.date === dateStr && o.status !== 'Cancelled')) {
-            streakCount++;
-          } else if (i > 0) break; // Don't break on today if no order yet
-        }
-        setStreak(streakCount);
-
-        // This month stats
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthOrders = allOrders.filter(o => new Date(o.createdAt) >= monthStart && o.status !== 'Cancelled' && o.status !== 'Returned');
-        const monthAmount = monthOrders.reduce((s, o) => s + (o.actualTotal || o.total || 0), 0);
-
-        const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', user.phone)));
-        const ledgerEntries = ledgerSnap.docs.map(d => d.data());
-        const monthPayments = ledgerEntries.filter(e => e.type === 'credit' && new Date(e.createdAt) >= monthStart)
-          .reduce((s, e) => s + (e.amount || 0), 0);
-
-        setMonthStats({ orders: monthOrders.length, amount: monthAmount, payments: monthPayments });
-      } catch (err) {
-      }
-      setLoading(false);
-    }
-    fetchData();
-  }, [user.phone]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -194,7 +181,7 @@ export default function Home() {
     'Returned': { color: 'text-gray-700 dark:text-gray-300', bg: 'bg-gray-50 dark:bg-[#0a0a0a]/30', border: 'border-gray-200 dark:border-[#222222]', icon: Clock },
   };
 
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-royal-200 dark:border-[#333333] border-t-royal-600 dark:border-t-royal-400 rounded-full animate-spin" /></div>;
 
   return (
     <motion.div className="space-y-5 pb-24" variants={stagger} initial="initial" animate="animate">

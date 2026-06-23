@@ -116,35 +116,52 @@ export default function RetailerLayout() {
     if (ok) { const phone = sessionStorage.getItem('lg_active_phone'); if (phone) localStorage.removeItem(`lg_user_${phone}`); localStorage.removeItem('lg_user'); sessionStorage.removeItem('lg_active_phone'); window.location.reload(); }
   };
 
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+
   return (
     <div className="min-h-screen flex bg-[#f8fafc] dark:bg-[#000000]">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-[260px] z-50 flex-col bg-white dark:bg-[#0a0a0a] border-r border-gray-100 dark:border-[#222222] shadow-xl shadow-royal-900/5">
-        <div className="p-5 border-b border-gray-100 dark:border-[#222222]">
+      <aside
+        onMouseEnter={() => setSidebarExpanded(true)}
+        onMouseLeave={() => setSidebarExpanded(false)}
+        className={`hidden lg:flex fixed top-0 left-0 h-full z-50 flex-col bg-white dark:bg-[#0a0a0a] border-r border-gray-100 dark:border-[#222222] shadow-xl shadow-royal-900/5 transition-all duration-300 ${sidebarExpanded ? 'w-[260px]' : 'w-[68px]'}`}>
+        <div className="p-4 border-b border-gray-100 dark:border-[#222222]">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Lucy Garden" className="w-11 h-11 rounded-xl object-cover shadow-md ring-2 ring-royal-100 dark:ring-royal-800" />
-            <div><h1 className="font-black text-royal-900 dark:text-white text-[16px] tracking-tight">Lucy Garden</h1><p className="text-mint-600 text-[9px] font-bold tracking-[0.15em] uppercase">Fresh Dairy Supply</p></div>
+            <img src={logo} alt="Lucy Garden" className="w-10 h-10 rounded-xl object-cover shadow-md ring-2 ring-royal-100 dark:ring-royal-800 shrink-0" />
+            {sidebarExpanded && (
+              <div className="overflow-hidden">
+                <h1 className="font-black text-royal-900 dark:text-white text-[15px] tracking-tight whitespace-nowrap">Lucy Garden</h1>
+                <p className="text-mint-600 text-[8px] font-bold tracking-[0.15em] uppercase">Fresh Dairy Supply</p>
+              </div>
+            )}
           </div>
         </div>
-        <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
+        <nav className="p-2 space-y-0.5 flex-1 overflow-y-auto">
           {navItems.filter(item => !item.flag || flags[item.flag] !== false).map(item => (
             <NavLink key={item.to} to={item.to} end={item.end}
-              className={({ isActive }) => `group flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-royal-600 to-royal-700 text-white shadow-lg shadow-royal-600/20' : 'text-gray-500 dark:text-gray-400 hover:bg-royal-50 dark:hover:bg-[#111111] hover:text-royal-700 dark:hover:text-white'}`}>
-              {({ isActive }) => (<><item.Icon size={17} strokeWidth={isActive ? 2.2 : 1.7} className={isActive ? 'text-white' : 'text-gray-400 group-hover:text-royal-500'} /><span>{item.label}</span>{isActive && <motion.div layoutId="desktopSidebarDot" className="ml-auto w-1.5 h-1.5 bg-mint-400 rounded-full shadow-glow" />}</>)}
+              title={item.label}
+              className={({ isActive }) => `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-royal-600 to-royal-700 text-white shadow-lg shadow-royal-600/20' : 'text-gray-500 dark:text-gray-400 hover:bg-royal-50 dark:hover:bg-[#111111] hover:text-royal-700 dark:hover:text-white'}`}>
+              {({ isActive }) => (<><item.Icon size={18} strokeWidth={isActive ? 2.2 : 1.7} className={`shrink-0 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-royal-500'}`} />{sidebarExpanded && <span className="whitespace-nowrap">{item.label}</span>}{sidebarExpanded && isActive && <motion.div layoutId="desktopSidebarDot" className="ml-auto w-1.5 h-1.5 bg-mint-400 rounded-full shadow-glow" />}</>)}
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 mx-3 mb-3 rounded-2xl bg-gradient-to-br from-royal-50 to-mint-50 dark:from-[#111111] dark:to-[#111111] border border-royal-100/60 dark:border-[#222222]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-royal-600 to-mint-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">{user.name?.[0] || 'U'}</div>
-            <div className="flex-1 min-w-0"><p className="text-sm font-bold text-gray-800 dark:text-white truncate">{user.name || 'User'}</p><p className="text-[10px] text-royal-600 dark:text-royal-400 font-medium truncate">{user.shop || ''}</p></div>
+        {sidebarExpanded ? (
+          <div className="p-3 mx-2 mb-3 rounded-2xl bg-gradient-to-br from-royal-50 to-mint-50 dark:from-[#111111] dark:to-[#111111] border border-royal-100/60 dark:border-[#222222]">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-royal-600 to-mint-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">{user.name?.[0] || 'U'}</div>
+              <div className="flex-1 min-w-0"><p className="text-sm font-bold text-gray-800 dark:text-white truncate">{user.name || 'User'}</p><p className="text-[10px] text-royal-600 dark:text-royal-400 font-medium truncate">{user.shop || ''}</p></div>
+            </div>
+            <button onClick={handleLogout} className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 text-[10px] font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-all border border-red-100 dark:border-red-900/30"><LogOut size={12} /> Logout</button>
           </div>
-          <button onClick={handleLogout} className="w-full mt-3 flex items-center justify-center gap-2 py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 text-[10px] font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-all border border-red-100 dark:border-red-900/30"><LogOut size={12} /> Logout</button>
-        </div>
+        ) : (
+          <div className="px-2 mb-3">
+            <button onClick={handleLogout} title="Logout" className="w-full flex items-center justify-center py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"><LogOut size={16} /></button>
+          </div>
+        )}
       </aside>
 
       {/* Main */}
-      <div className="flex-1 lg:ml-[260px] flex flex-col min-h-screen">
+      <div className={`flex-1 transition-all duration-300 ${sidebarExpanded ? 'lg:ml-[260px]' : 'lg:ml-[68px]'} flex flex-col min-h-screen`}>
         {/* Mobile Header */}
         <header className="sticky top-0 z-30 lg:hidden bg-gradient-to-r from-royal-700 via-royal-600 to-mint-700">
           <div className="flex items-center justify-between px-4 py-3">
@@ -197,10 +214,12 @@ export default function RetailerLayout() {
         <main className="flex-1 p-4 md:p-6 pb-20 lg:pb-6 w-full overscroll-y-contain">
           {/* Pull to refresh indicator */}
           {pulling && (
-            <div className="flex justify-center pb-2 -mt-2 transition-all" style={{ height: pullDistance }}>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${pullDistance >= threshold ? 'border-royal-500 bg-royal-50 dark:bg-royal-900/30' : 'border-gray-300 dark:border-[#333333]'}`}
-                style={{ transform: `rotate(${pullDistance * 3}deg)`, opacity: Math.min(pullDistance / threshold, 1) }}>
-                <svg className={`w-4 h-4 ${pullDistance >= threshold ? 'text-royal-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <div className="flex justify-center pb-3 -mt-1 transition-all" style={{ height: pullDistance }}>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${pullDistance >= threshold ? 'bg-royal-600 shadow-lg shadow-royal-600/30 scale-110' : 'bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333333] shadow-sm'}`}
+                style={{ opacity: Math.min(pullDistance / (threshold * 0.6), 1) }}>
+                <svg className={`w-4 h-4 transition-all duration-200 ${pullDistance >= threshold ? 'text-white' : 'text-royal-600 dark:text-royal-400'}`}
+                  style={{ transform: `rotate(${Math.min(pullDistance / threshold, 1) * 180}deg)` }}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
               </div>
@@ -224,7 +243,14 @@ export default function RetailerLayout() {
               )}
             </AnimatePresence>
             <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-royal-200 dark:border-[#333333] border-t-royal-600 dark:border-t-royal-400 rounded-full animate-spin" /></div>}>
-              <Outlet />
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1 }}
+              >
+                <Outlet />
+              </motion.div>
             </Suspense>
           </div>
         </main>

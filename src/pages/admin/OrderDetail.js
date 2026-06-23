@@ -27,10 +27,14 @@ export default function OrderDetail() {
           if (retDoc.exists()) setRetailer(retDoc.data());
         }
 
-        // Fetch retailer balance
+        // Calculate retailer due from ledger (source of truth)
         if (orderData.retailerId) {
-          const balDoc = await getDoc(doc(db, 'retailer_balances', orderData.retailerId));
-          if (balDoc.exists()) setBalance(balDoc.data().balance || 0);
+          const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', orderData.retailerId)));
+          const due = ledgerSnap.docs.reduce((sum, d) => {
+            const e = d.data();
+            return e.type === 'debit' ? sum + (e.amount || 0) : sum - (e.amount || 0);
+          }, 0);
+          setBalance(due);
         }
       } catch (err) {}
       setLoading(false);

@@ -274,7 +274,14 @@ function DevLayoutInner() {
             </div>
           )}
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-green-900 border-t-green-400 rounded-full animate-spin" /></div>}>
-            <Outlet />
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.1 }}
+            >
+              <Outlet />
+            </motion.div>
           </Suspense>
         </main>
       </div>

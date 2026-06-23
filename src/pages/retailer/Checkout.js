@@ -55,9 +55,11 @@ export default function Checkout() {
   useEffect(() => {
     async function fetchBalance() {
       try {
-        // Fetch balance — always fresh
-        const balDoc = await getDoc(doc(db, 'retailer_balances', user.phone));
-        if (balDoc.exists()) setBalance(balDoc.data().balance || 0);
+        // Calculate due from ledger (source of truth)
+        const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', user.phone)));
+        const entries = ledgerSnap.docs.map(d => d.data());
+        const due = entries.reduce((sum, e) => e.type === 'debit' ? sum + (e.amount || 0) : sum - (e.amount || 0), 0);
+        setBalance(due);
 
         const appDoc = await cachedGetDoc(doc(db, 'settings', 'app'), 5 * 60 * 1000);
         if (appDoc.exists()) {
@@ -68,7 +70,11 @@ export default function Checkout() {
           const end = appDoc.data().orderEnd ?? 16;
           if (start !== -1 && end !== -1) {
             const hour = new Date().getHours();
-            if (hour < start || hour >= end) setOrderClosed(true);
+            if (end <= start) {
+              setOrderClosed(!(hour >= start || hour < end));
+            } else {
+              if (hour < start || hour >= end) setOrderClosed(true);
+            }
           }
         }
         // Check duplicate order

@@ -49,11 +49,20 @@ export default function Ledger() {
       setRetailers(list);
       const areasDoc = await getDoc(doc(db, 'settings', 'areas'));
       if (areasDoc.exists()) setAreas(areasDoc.data().list || []);
-      // Fetch balances for dues overview
-      const balSnap = await getDocs(collection(db, 'retailer_balances'));
-      const dues = balSnap.docs.filter(d => (d.data().balance || 0) > 0).map(d => {
-        const ret = list.find(r => r.phone === d.id);
-        return { phone: d.id, name: ret?.name || d.id, area: ret?.area || '', balance: d.data().balance };
+      // Calculate dues from ledger (source of truth)
+      const allLedgerSnap = await getDocs(collection(db, 'ledger'));
+      const allLedgerEntries = allLedgerSnap.docs.map(d => d.data());
+      const dueByRetailer = {};
+      allLedgerEntries.forEach(e => {
+        const rid = e.retailerId;
+        if (!rid) return;
+        if (!dueByRetailer[rid]) dueByRetailer[rid] = 0;
+        if (e.type === 'debit') dueByRetailer[rid] += (e.amount || 0);
+        else dueByRetailer[rid] -= (e.amount || 0);
+      });
+      const dues = Object.entries(dueByRetailer).filter(([, bal]) => bal > 0).map(([phone, balance]) => {
+        const ret = list.find(r => r.phone === phone);
+        return { phone, name: ret?.name || phone, area: ret?.area || '', balance };
       }).sort((a, b) => b.balance - a.balance);
       setDueList(dues);
     } catch (err) {}

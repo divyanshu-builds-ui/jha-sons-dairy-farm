@@ -31,17 +31,27 @@ export default function Dashboard() {
         setTodayTotal(todayAmt);
 
         const balSnap = await getDocs(collection(db, 'retailer_balances'));
-        const balances = balSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const totalUdhaar = balances.reduce((s, b) => s + (b.balance || 0), 0);
+        // Calculate actual dues from ledger (source of truth)
+        const allLedgerSnap = await getDocs(collection(db, 'ledger'));
+        const allLedgerEntries = allLedgerSnap.docs.map(d => d.data());
+        const dueByRetailer = {};
+        allLedgerEntries.forEach(e => {
+          const rid = e.retailerId;
+          if (!rid) return;
+          if (!dueByRetailer[rid]) dueByRetailer[rid] = 0;
+          if (e.type === 'debit') dueByRetailer[rid] += (e.amount || 0);
+          else dueByRetailer[rid] -= (e.amount || 0);
+        });
+        const totalUdhaar = Object.values(dueByRetailer).reduce((s, v) => s + Math.max(0, v), 0);
 
         // Map phone/id to name from users
         const nameMap = {};
         usersSnap.docs.forEach(d => { const data = d.data(); nameMap[d.id] = data.name || d.id; if (data.id) nameMap[data.id] = data.name || d.id; });
 
-        const defaultersList = balances.filter(b => b.balance > 0).sort((a, b) => b.balance - a.balance)
-          .map(b => ({ ...b, name: nameMap[b.id] || b.id, phone: b.id }));
+        const defaultersList = Object.entries(dueByRetailer).filter(([, bal]) => bal > 0).sort((a, b) => b[1] - a[1])
+          .map(([id, balance]) => ({ id, balance, name: nameMap[id] || id, phone: id }));
         setDefaulters(defaultersList.slice(0, 6));
-        setOverdueCount(balances.filter(b => b.balance > 5000).length);
+        setOverdueCount(defaultersList.filter(d => d.balance > 5000).length);
 
         const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('type', '==', 'credit'), where('date', '==', today)));
         const todayCollected = ledgerSnap.docs.reduce((s, d) => s + Math.abs(d.data().amount), 0);

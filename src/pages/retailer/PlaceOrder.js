@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ShoppingCart, AlertTriangle, Clock, Plus, Minus, X, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db, doc, getDoc, collection, getDocs, cachedGetDoc } from '../../services/firebase';
+import { db, doc, getDoc, collection, getDocs, query, where, cachedGetDoc } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { OrderSkeleton } from '../../components/LoadingSkeleton';
 import { useFlags } from '../../context/FeatureFlags';
@@ -29,9 +29,11 @@ export default function PlaceOrder() {
   useEffect(() => {
     async function fetchAll() {
       try {
-        // Balance — always fresh
-        const balDoc = await getDoc(doc(db, 'retailer_balances', user.phone));
-        if (balDoc.exists()) setBalance(balDoc.data().balance || 0);
+        // Calculate due from ledger (source of truth)
+        const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', user.phone)));
+        const entries = ledgerSnap.docs.map(d => d.data());
+        const due = entries.reduce((sum, e) => e.type === 'debit' ? sum + (e.amount || 0) : sum - (e.amount || 0), 0);
+        setBalance(due);
 
         // Products — fresh every page load (no cache, prices must be latest)
         const prodSnap = await getDocs(collection(db, 'products'));
@@ -64,7 +66,14 @@ export default function PlaceOrder() {
           if (start === -1 || end === -1) { setCutoffPassed(false); }
           else {
             const hour = new Date().getHours();
-            setCutoffPassed(hour < start || hour >= end);
+            // Handle overnight window (e.g. start=12, end=0 means 12PM to 12AM)
+            if (end <= start) {
+              // Overnight: open if hour >= start OR hour < end
+              setCutoffPassed(!(hour >= start || hour < end));
+            } else {
+              // Normal: open if hour >= start AND hour < end
+              setCutoffPassed(hour < start || hour >= end);
+            }
           }
         }
       } catch (err) {}

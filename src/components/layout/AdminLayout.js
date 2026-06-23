@@ -227,10 +227,12 @@ export default function AdminLayout() {
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 overscroll-y-contain">
           {pulling && (
-            <div className="flex justify-center pb-2 -mt-2 transition-all" style={{ height: pullDistance }}>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${pullDistance >= threshold ? 'border-royal-500 bg-royal-50 dark:bg-royal-900/30' : 'border-gray-300 dark:border-[#333333]'}`}
-                style={{ transform: `rotate(${pullDistance * 3}deg)`, opacity: Math.min(pullDistance / threshold, 1) }}>
-                <svg className={`w-4 h-4 ${pullDistance >= threshold ? 'text-royal-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <div className="flex justify-center pb-3 -mt-1 transition-all" style={{ height: pullDistance }}>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${pullDistance >= threshold ? 'bg-royal-600 shadow-lg shadow-royal-600/30 scale-110' : 'bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#333333] shadow-sm'}`}
+                style={{ opacity: Math.min(pullDistance / (threshold * 0.6), 1) }}>
+                <svg className={`w-4 h-4 transition-all duration-200 ${pullDistance >= threshold ? 'text-white' : 'text-royal-600 dark:text-royal-400'}`}
+                  style={{ transform: `rotate(${Math.min(pullDistance / threshold, 1) * 180}deg)` }}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
               </div>
@@ -254,7 +256,14 @@ export default function AdminLayout() {
               )}
             </AnimatePresence>
             <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-royal-200 dark:border-[#333333] border-t-royal-600 dark:border-t-royal-400 rounded-full animate-spin" /></div>}>
-              <Outlet />
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1 }}
+              >
+                <Outlet />
+              </motion.div>
             </Suspense>
           </div>
         </main>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldOff, Phone, MessageSquare, IndianRupee, Clock, ArrowRight, AlertCircle } from 'lucide-react';
-import { db, doc, getDoc } from '../../services/firebase';
+import { db, doc, getDoc, collection, getDocs, query, where } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { Link } from 'react-router-dom';
 
@@ -15,8 +15,11 @@ export default function Blocked() {
       try {
         const userDoc = await getDoc(doc(db, 'users', user.phone));
         if (userDoc.exists()) setBlockInfo(userDoc.data());
-        const balDoc = await getDoc(doc(db, 'retailer_balances', user.phone));
-        if (balDoc.exists()) setBalance(balDoc.data().balance || 0);
+        // Calculate due from ledger (source of truth)
+        const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', user.phone)));
+        const entries = ledgerSnap.docs.map(d => d.data());
+        const due = entries.reduce((sum, e) => e.type === 'debit' ? sum + (e.amount || 0) : sum - (e.amount || 0), 0);
+        setBalance(due);
       } catch (e) {}
     }
     fetch();
