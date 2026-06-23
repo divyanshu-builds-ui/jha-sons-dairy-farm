@@ -223,7 +223,7 @@ export default function RetailerLayout() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <Suspense fallback={<div className="space-y-4 p-1 animate-pulse"><div className="h-36 bg-gray-200 dark:bg-[#111111] rounded-2xl" /><div className="grid grid-cols-2 gap-3"><div className="h-24 bg-gray-200 dark:bg-[#111111] rounded-2xl" /><div className="h-24 bg-gray-200 dark:bg-[#111111] rounded-2xl" /></div><div className="h-48 bg-gray-200 dark:bg-[#111111] rounded-2xl" /></div>}>
+            <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-royal-200 dark:border-[#333333] border-t-royal-600 dark:border-t-royal-400 rounded-full animate-spin" /></div>}>
               <Outlet />
             </Suspense>
           </div>

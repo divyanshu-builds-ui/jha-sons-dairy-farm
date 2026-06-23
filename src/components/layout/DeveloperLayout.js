@@ -273,7 +273,7 @@ function DevLayoutInner() {
               </div>
             </div>
           )}
-          <Suspense fallback={<DevPageSkeleton />}>
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-green-900 border-t-green-400 rounded-full animate-spin" /></div>}>
             <Outlet />
           </Suspense>
         </main>

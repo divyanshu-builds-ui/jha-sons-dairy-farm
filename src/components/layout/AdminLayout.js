@@ -41,6 +41,7 @@ const moreLinks = [
 
 export default function AdminLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { sheetRef, handleProps, close } = useBottomSheet(() => setMoreOpen(false));
   const [scrolled, setScrolled] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
@@ -131,36 +132,49 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen flex bg-[#f1f5f9] dark:bg-[#000000]">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-[260px] z-50 flex-col bg-gradient-to-b from-[#0f172a] via-[#1e293b] to-[#0f172a] dark:from-[#000000] dark:via-[#0a0a0a] dark:to-[#000000] dark:border-r dark:border-[#1a1a1a]">
-        <div className="p-6 pb-5">
+      <aside
+        onMouseEnter={() => setSidebarExpanded(true)}
+        onMouseLeave={() => setSidebarExpanded(false)}
+        className={`hidden lg:flex fixed top-0 left-0 h-full z-50 flex-col bg-gradient-to-b from-[#0f172a] via-[#1e293b] to-[#0f172a] dark:from-[#000000] dark:via-[#0a0a0a] dark:to-[#000000] dark:border-r dark:border-[#1a1a1a] transition-all duration-300 ${sidebarExpanded ? 'w-[260px]' : 'w-[68px]'}`}>
+        <div className="p-4 pb-4">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Lucy Garden" className="w-12 h-12 rounded-2xl object-cover shadow-xl border border-white/10" loading="eager" decoding="async" />
-            <div>
-              <h1 className="font-black text-white text-[17px] tracking-tight">Lucy Garden</h1>
-              <p className="text-[9px] text-blue-400 font-bold tracking-[0.15em] uppercase">Admin Console</p>
-            </div>
+            <img src={logo} alt="Lucy Garden" className="w-10 h-10 rounded-xl object-cover shadow-xl border border-white/10 shrink-0" loading="eager" decoding="async" />
+            {sidebarExpanded && (
+              <div className="overflow-hidden">
+                <h1 className="font-black text-white text-[15px] tracking-tight whitespace-nowrap">Lucy Garden</h1>
+                <p className="text-[8px] text-blue-400 font-bold tracking-[0.15em] uppercase">Admin Console</p>
+              </div>
+            )}
           </div>
         </div>
-        <nav className="px-3 space-y-0.5 flex-1 overflow-y-auto">
+        <nav className="px-2 space-y-0.5 flex-1 overflow-y-auto">
           {sidebarLinks.map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end}
-              className={({ isActive }) => `group flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-royal-600/90 to-royal-700/90 text-white shadow-lg shadow-royal-900/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-              {({ isActive }) => (<><link.Icon size={17} strokeWidth={isActive ? 2.3 : 1.7} className={isActive ? 'text-mint-300' : 'text-gray-500 group-hover:text-gray-300'} /><span>{link.label}</span>{isActive && <motion.div layoutId="adminSidebarDot" className="ml-auto w-1.5 h-1.5 bg-mint-400 rounded-full shadow-glow" />}</>)}
+              title={link.label}
+              className={({ isActive }) => `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-royal-600/90 to-royal-700/90 text-white shadow-lg shadow-royal-900/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+              {({ isActive }) => (<><link.Icon size={18} strokeWidth={isActive ? 2.3 : 1.7} className={`shrink-0 ${isActive ? 'text-mint-300' : 'text-gray-500 group-hover:text-gray-300'}`} />{sidebarExpanded && <span className="whitespace-nowrap">{link.label}</span>}{sidebarExpanded && isActive && <motion.div layoutId="adminSidebarDot" className="ml-auto w-1.5 h-1.5 bg-mint-400 rounded-full shadow-glow" />}</>)}
             </NavLink>
           ))}
         </nav>
-        {isDev && (<button onClick={() => { window.location.href = '/dev'; }} className="flex items-center gap-2.5 mx-3 mb-2 px-4 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all"><Code size={15} /><span className="text-[12px] font-bold">Dev Panel</span></button>)}
-        <div className="p-4 mx-3 mb-3 rounded-2xl bg-white/5 border border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-royal-500 to-mint-500 rounded-full flex items-center justify-center text-white font-black text-sm shadow-lg">{(JSON.parse(localStorage.getItem('lg_user') || '{}').name || 'A')[0]}</div>
-            <div className="flex-1"><p className="text-sm font-bold text-white">{JSON.parse(localStorage.getItem('lg_user') || '{}').name || 'Admin'}</p><p className="text-[10px] text-gray-400 font-medium">Owner • Lucy Garden</p></div>
+        {isDev && sidebarExpanded && (<button onClick={() => { window.location.href = '/dev'; }} className="flex items-center gap-2.5 mx-2 mb-2 px-3 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all"><Code size={15} /><span className="text-[12px] font-bold">Dev Panel</span></button>)}
+        {isDev && !sidebarExpanded && (<button onClick={() => { window.location.href = '/dev'; }} title="Dev Panel" className="flex items-center justify-center mx-2 mb-2 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-all"><Code size={16} /></button>)}
+        {sidebarExpanded ? (
+          <div className="p-3 mx-2 mb-3 rounded-2xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-gradient-to-br from-royal-500 to-mint-500 rounded-full flex items-center justify-center text-white font-black text-sm shadow-lg shrink-0">{(JSON.parse(localStorage.getItem('lg_user') || '{}').name || 'A')[0]}</div>
+              <div className="flex-1 overflow-hidden"><p className="text-sm font-bold text-white truncate">{JSON.parse(localStorage.getItem('lg_user') || '{}').name || 'Admin'}</p><p className="text-[10px] text-gray-400 font-medium">Owner</p></div>
+            </div>
+            <button onClick={handleLogout} className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500/10 text-red-400 text-[10px] font-bold hover:bg-red-500/20 transition-all"><LogOut size={12} /> Logout</button>
           </div>
-          <button onClick={handleLogout} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500/10 text-red-400 text-[10px] font-bold hover:bg-red-500/20 transition-all"><LogOut size={12} /> Logout</button>
-        </div>
+        ) : (
+          <div className="px-2 mb-3">
+            <button onClick={handleLogout} title="Logout" className="w-full flex items-center justify-center py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"><LogOut size={16} /></button>
+          </div>
+        )}
       </aside>
 
       {/* Main */}
-      <div className="flex-1 lg:ml-[260px] flex flex-col min-h-screen">
+      <div className={`flex-1 transition-all duration-300 ${sidebarExpanded ? 'lg:ml-[260px]' : 'lg:ml-[68px]'} flex flex-col min-h-screen`}>
         {/* Mobile Header */}
         <header className="sticky top-0 z-30 lg:hidden bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a]">
           <div className="flex items-center justify-between px-4 py-3">
@@ -239,7 +253,7 @@ export default function AdminLayout() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <Suspense fallback={<div className="space-y-4 p-1 animate-pulse"><div className="h-8 w-40 bg-gray-200 dark:bg-[#111111] rounded-xl" /><div className="h-32 bg-gray-200 dark:bg-[#111111] rounded-2xl" /><div className="grid grid-cols-2 gap-3"><div className="h-24 bg-gray-200 dark:bg-[#111111] rounded-2xl" /><div className="h-24 bg-gray-200 dark:bg-[#111111] rounded-2xl" /></div><div className="h-48 bg-gray-200 dark:bg-[#111111] rounded-2xl" /></div>}>
+            <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-royal-200 dark:border-[#333333] border-t-royal-600 dark:border-t-royal-400 rounded-full animate-spin" /></div>}>
               <Outlet />
             </Suspense>
           </div>
