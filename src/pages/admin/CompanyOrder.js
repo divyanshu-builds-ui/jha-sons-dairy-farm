@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Check, Download, PackagePlus, Save, Copy, History, CheckCircle2 } from 'lucide-react';
 import { db, collection, getDocs, setDoc, doc, getDoc, query, where } from '../../services/firebase';
 import { jsPDF } from 'jspdf';
+import { drawText } from '../../utils/pdfHelper';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 import { useConfirm } from '../../components/ConfirmModal';
 
@@ -144,7 +145,7 @@ export default function CompanyOrder() {
       if (y + rowH > h - 15) { pdf.addPage(); y = m; drawTableHeader(); }
       pdf.setDrawColor(220, 220, 220); pdf.setLineWidth(0.1); pdf.rect(m, y, tW, rowH, 'S');
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.text(`${si}`, m + colSI / 2, y + 5.5, { align: 'center' });
-      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.text(p.name, m + colSI + 3, y + 5.5);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); drawText(pdf, p.name, m + colSI + 3, y + 5.5, { bold: true, size: 10 });
       pdf.setFontSize(11); pdf.text(`${qty}`, m + colSI + colProduct + colQty / 2, y + 5.5, { align: 'center' });
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.text(p.unit || 'pcs', m + colSI + colProduct + colQty + colUnit / 2, y + 5.5, { align: 'center' });
       y += rowH; si++;

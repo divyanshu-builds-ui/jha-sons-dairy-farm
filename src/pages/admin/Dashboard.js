@@ -6,6 +6,7 @@ import { db, collection, getDocs, query, where, doc, cachedGetDoc } from '../../
 import { formatPrice } from '../../utils/price';
 import { DashboardSkeleton } from '../../components/LoadingSkeleton';
 import { useNavigate } from 'react-router-dom';
+import { drawText } from '../../utils/pdfHelper';
 
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 } };
 
@@ -327,9 +328,9 @@ export default function Dashboard() {
           const cardH = 26;
           const kpis = [
             { label: 'TOTAL ORDERS', value: `${stats.todayOrders}`, sub: `${stats.todayDelivered} delivered`, color: [59, 130, 246] },
-            { label: 'ORDER VALUE', value: `\u20B9${todayTotal.toLocaleString('en-IN')}`, sub: 'today\'s total', color: [245, 158, 11] },
-            { label: 'COLLECTED', value: `\u20B9${payments.today.toLocaleString('en-IN')}`, sub: 'payments received', color: [16, 185, 129] },
-            { label: 'PENDING DUES', value: `\u20B9${stats.pendingUdhaar.toLocaleString('en-IN')}`, sub: `${overdueCount} overdue (>5K)`, color: [239, 68, 68] },
+            { label: 'ORDER VALUE', value: `Rs.${todayTotal.toLocaleString('en-IN')}`, sub: 'today\'s total', color: [245, 158, 11] },
+            { label: 'COLLECTED', value: `Rs.${payments.today.toLocaleString('en-IN')}`, sub: 'payments received', color: [16, 185, 129] },
+            { label: 'PENDING DUES', value: `Rs.${stats.pendingUdhaar.toLocaleString('en-IN')}`, sub: `${overdueCount} overdue (>5K)`, color: [239, 68, 68] },
           ];
           kpis.forEach((kpi, i) => {
             const cx = m + i * (cardW + 2);
@@ -368,7 +369,7 @@ export default function Dashboard() {
           const overviewItems = [
             `Retailers: ${stats.retailers}`,
             `Pending Orders: ${stats.todayOrders - stats.todayDelivered}`,
-            `Total Due: \u20B9${stats.pendingUdhaar.toLocaleString('en-IN')}`,
+            `Total Due: Rs.${stats.pendingUdhaar.toLocaleString('en-IN')}`,
             `Overdue (>5K): ${overdueCount}`,
           ];
           const stripItemW = tableW / overviewItems.length;
@@ -397,7 +398,7 @@ export default function Dashboard() {
               pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
               pdf.text(`${i + 1}`, m + 5, y + 4);
               pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(30, 41, 59);
-              pdf.text(p.name.slice(0, 35), m + 14, y + 4);
+              drawText(pdf, p.name.slice(0, 35), m + 14, y + 4, { bold: true, size: 9, color: [30, 41, 59] });
               pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(15, 23, 42);
               pdf.text(`${p.qty}`, w - m - 5, y + 4, { align: 'right' });
               y += 7.5;
@@ -427,11 +428,11 @@ export default function Dashboard() {
               pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
               pdf.text(`${i + 1}`, m + 5, y + 4);
               pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(30, 41, 59);
-              pdf.text((d.name || '-').slice(0, 28), m + 14, y + 4);
+              drawText(pdf, (d.name || '-').slice(0, 28), m + 14, y + 4, { bold: true, size: 9, color: [30, 41, 59] });
               pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
               pdf.text(d.phone || '-', m + 80, y + 4);
               pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5); pdf.setTextColor(220, 38, 38);
-              pdf.text(`\u20B9${d.balance.toLocaleString('en-IN')}`, w - m - 5, y + 4, { align: 'right' });
+              pdf.text(`Rs.${d.balance.toLocaleString('en-IN')}`, w - m - 5, y + 4, { align: 'right' });
               y += 7.5;
             });
           }

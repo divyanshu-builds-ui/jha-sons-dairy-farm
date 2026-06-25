@@ -4,6 +4,7 @@ import { Calendar, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 import { db, collection, getDocs, query, where } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
+import { drawText } from '../../utils/pdfHelper';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 
 export default function MyLedger() {
@@ -123,7 +124,7 @@ export default function MyLedger() {
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139);
     pdf.text('RETAILER DETAILS', m + 4, y + 5);
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(15, 23, 42);
-    pdf.text(user.name || '', m + 4, y + 11);
+    drawText(pdf, user.name || '', m + 4, y + 11, { bold: true, size: 10, color: [15, 23, 42] });
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(71, 85, 105);
     pdf.text(`Phone: ${user.phone || ''}  |  Shop: ${user.shop || '-'}  |  Area: ${user.area || '-'}`, m + 4, y + 17);
 

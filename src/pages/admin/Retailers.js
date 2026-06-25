@@ -5,6 +5,7 @@ import { db, collection, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, que
 import { formatPrice } from '../../utils/price';
 import { CardsSkeleton } from '../../components/LoadingSkeleton';
 import { useConfirm } from '../../components/ConfirmModal';
+import { drawText } from '../../utils/pdfHelper';
 
 function Toast({ message, type = 'success', onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 2500); return () => clearTimeout(t); }, [onClose]);
@@ -333,12 +334,12 @@ export default function Retailers() {
             cx = m;
             pdf.text(`${i + 1}`, cx + 3, y + 3.5); cx += cols[0];
             pdf.setFont('helvetica', 'bold'); pdf.setTextColor(15, 23, 42);
-            pdf.text((r.name || '-').slice(0, 22), cx + 3, y + 3.5); cx += cols[1];
+            drawText(pdf, (r.name || '-').slice(0, 22), cx + 3, y + 3.5, { bold: true, size: 8, color: [15, 23, 42] }); cx += cols[1];
             pdf.setFont('helvetica', 'normal'); pdf.setTextColor(71, 85, 105);
             pdf.text(r.phone || '', cx + 3, y + 3.5); cx += cols[2];
-            pdf.text((r.shop || '-').slice(0, 20), cx + 3, y + 3.5); cx += cols[3];
+            drawText(pdf, (r.shop || '-').slice(0, 20), cx + 3, y + 3.5, { size: 8, color: [71, 85, 105] }); cx += cols[3];
             pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139);
-            pdf.text(r.area || '-', cx + 3, y + 3.5);
+            drawText(pdf, r.area || '-', cx + 3, y + 3.5, { bold: true, size: 7, color: [100, 116, 139] });
             y += 7;
           });
           pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(150, 150, 150);

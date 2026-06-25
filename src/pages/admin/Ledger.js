@@ -6,6 +6,7 @@ import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 import { useConfirm } from '../../components/ConfirmModal';
+import { drawText } from '../../utils/pdfHelper';
 
 
 export default function Ledger() {
@@ -201,7 +202,7 @@ export default function Ledger() {
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139);
     pdf.text('RETAILER DETAILS', m + 4, y + 5);
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(15, 23, 42);
-    pdf.text(retailer?.name || '', m + 4, y + 11);
+    drawText(pdf, retailer?.name || '', m + 4, y + 11, { bold: true, size: 10, color: [15, 23, 42] });
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(71, 85, 105);
     pdf.text(`Phone: ${retailer?.phone || ''}  |  Shop: ${retailer?.shop || '-'}  |  Area: ${retailer?.area || '-'}`, m + 4, y + 17);
 
@@ -847,7 +848,7 @@ export default function Ledger() {
                   receiptPdf.setDrawColor(180); receiptPdf.setLineDashPattern([1, 1], 0); receiptPdf.line(rm, ry, rw - rm, ry); receiptPdf.setLineDashPattern([], 0); ry += 4;
                   receiptPdf.setFont('helvetica', 'bold'); receiptPdf.setFontSize(8);
                   receiptPdf.text('Received From:', rm, ry); ry += 4;
-                  receiptPdf.setFontSize(10); receiptPdf.text(r.name, rm, ry); ry += 4;
+                  receiptPdf.setFontSize(10); drawText(receiptPdf, r.name, rm, ry, { bold: true, size: 10 }); ry += 4;
                   receiptPdf.setFont('helvetica', 'normal'); receiptPdf.setFontSize(7); receiptPdf.setTextColor(80);
                   receiptPdf.text(`Phone: ${r.phone}`, rm, ry);
                   if (r.shop) receiptPdf.text(r.shop, rw - rm, ry, { align: 'right' });

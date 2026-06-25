@@ -91,6 +91,7 @@ export default function PriceList() {
       {/* Print Rate Card */}
       <motion.button whileTap={{ scale: 0.93 }} onClick={async () => {
         const { jsPDF } = await import('jspdf');
+        const { drawText } = await import('../../utils/pdfHelper');
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
         const w = pdf.internal.pageSize.getWidth(); const h = pdf.internal.pageSize.getHeight();
         const m = 12; let y = 0; const tableW = w - (m * 2);
@@ -129,7 +130,7 @@ export default function PriceList() {
               if (y + 6.5 > h - 12) { pdf.addPage(); y = 10; }
               if (i % 2 === 0) { pdf.setFillColor(252, 252, 253); pdf.rect(m, y - 1, tableW, 6.5, 'F'); }
               pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(15, 23, 42);
-              pdf.text((p.name || '').slice(0, 35), m + 5, y + 3);
+              drawText(pdf, (p.name || '').slice(0, 35), m + 5, y + 3, { bold: true, size: 8, color: [15, 23, 42] });
               pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5); pdf.setTextColor(100, 116, 139);
               pdf.text(p.unit ? p.unit.toUpperCase() : '', m + 105, y + 3);
               pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5); pdf.setTextColor(15, 23, 42);
