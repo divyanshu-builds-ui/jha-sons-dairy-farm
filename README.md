@@ -110,16 +110,16 @@ lucy-garden/
 │   │   │   └── TrackOrder.js   ← Today's order status + PDF invoice
 │   │   │
 │   │   ├── admin/              ← Pages for business owner (admin)
-│   │   │   ├── Areas.js        ← Delivery area management
+│   │   │   ├── Announcements.js ← Send banners to users
 │   │   │   ├── CompanyOrder.js ← Company-level order summary
 │   │   │   ├── DailyLedger.js  ← Daily order sheet + dispatch/deliver + bulk dispatch
-│   │   │   ├── Dashboard.js    ← Admin home (stats, overview, owner name greeting)
+│   │   │   ├── Dashboard.js    ← Admin home (stats, overview, FAB quick actions)
 │   │   │   ├── DevPanel.js     ← App health monitor (dev only)
-│   │   │   ├── Guide.js        ← Admin Guide (step-by-step for all admin features)
 │   │   │   ├── Inventory.js    ← Products list (add/edit/delete/price)
-│   │   │   ├── Ledger.js       ← Retailer-wise payment ledger
-│   │   │   ├── OrderDetail.js  ← Single order detail view
-│   │   │   ├── Retailers.js    ← Manage retailers (add/edit/delete) + last login info
+│   │   │   ├── Ledger.js       ← Retailer-wise payment ledger + entries edit/delete
+│   │   │   ├── OrderDetail.js  ← Single order detail + timeline + edit items
+│   │   │   ├── PlaceOrder.js   ← Place/edit order on behalf of retailer
+│   │   │   ├── Retailers.js    ← Manage retailers + performance score
 │   │   │   ├── Sessions.js     ← Active sessions monitor + force logout/unblock
 │   │   │   ├── Settings.js     ← 2-col layout: timing, rules, maintenance, tools
 │   │   │   └── SupportTickets.js ← View/reply tickets + pagination + search
@@ -219,17 +219,18 @@ lucy-garden/
 
 | File | What the admin sees |
 |------|-------------------|
-| `Dashboard.js` | Overview — today's orders, revenue, pending deliveries. **Premium animated donut chart** (always visible, 0% empty state). **Report PDF download.** Shows owner name dynamically. |
-| `DailyLedger.js` | **Main daily work page.** Shows all retailers + their orders in a table. Dispatch/Deliver buttons. **Bulk Dispatch All** for one-click dispatch. PDF export. |
-| `Retailers.js` | Add/Edit/Delete retailers. Change phone, PIN, area. View order history. Shows last login + device. |
+| `Dashboard.js` | Overview — today's orders, revenue, pending deliveries. Donut chart. Report PDF. Quick Actions FAB (mobile). |
+| `PlaceOrder.js` | Place/edit order on behalf of retailer. Area filter, search, date picker, duplicate check, quick re-order, edit existing order inline. |
+| `DailyLedger.js` | Main daily work page. All retailers + orders in table. Dispatch/Deliver. Bulk Dispatch. Past date actions enabled. PDF export. |
+| `Retailers.js` | Add/Edit/Delete retailers. Block/Unblock. Performance Score (frequency, reliability, payment). Area management. |
 | `Inventory.js` | Add/Edit/Delete products. Set prices. Bulk price update. |
-| `Ledger.js` | Select a retailer → see daily opening/closing balance, collect payment. |
-| `CompanyOrder.js` | Total company-level order summary for the day. |
-| `Areas.js` | Manage delivery areas (add/remove). |
-| `Settings.js` | **2-column layout.** Order/delivery window, session timeout, min order amount, max items, allow modify, default PIN, maintenance mode, tools (sessions/retailers links). |
-| `Sessions.js` | Monitor active sessions, force logout, unblock accounts, reset PINs. |
-| `SupportTickets.js` | View all retailer tickets, reply, change status. **Pagination (10/page) + search.** |
-| `Guide.js` | **Admin Guide** — step-by-step for all admin features: Dashboard, Daily Sheet, Retailers, Inventory, Ledger, Company Order, Areas, Tickets, Sessions, Settings. With FAQ. |
+| `Ledger.js` | Retailer ledger — Summary view (daily opening/closing) + All Entries view (edit/delete individual entries). Collect payment with date picker. Set opening balance. |
+| `OrderDetail.js` | Single order — timeline (Placed→Confirmed→Dispatched→Delivered), edit items, retailer info, due warning. |
+| `CompanyOrder.js` | Company-level order summary for the day. |
+| `Announcements.js` | Send banners to users. |
+| `Settings.js` | Order/delivery window, session timeout, min order, max items, maintenance mode. |
+| `Sessions.js` | Monitor active sessions, force logout, unblock accounts. |
+| `SupportTickets.js` | View all retailer tickets, reply, change status. Pagination + search. |
 
 ### 🛠️ Developer Pages (19 pages)
 
@@ -275,7 +276,7 @@ lucy-garden/
 | File | What it does |
 |------|-------------|
 | `errorLogger.js` | Catches all app crashes automatically. Stores in Firebase. Matches errors with solutions. |
-| `config.js` | **🎯 Central config** — app version (`2.6.0`), name, tagline, developer info, phone. Single source of truth. |
+| `config.js` | **🎯 Central config** — app version (`2.8.0`), name, tagline, developer info, phone. Single source of truth. |
 | `autoCleanup.js` | **Auto-cleanup on app load** — runs once/day, deletes old errors (7d), old orders/audit (1yr). Respects `autoCleanup` setting. Logs to audit_log. |
 | `usageTracker.js` | **Tracks Firestore usage** (reads/writes/deletes) locally, syncs to Firebase every 5 min + on page unload. |
 | `price.js` | Formats numbers as ₹ prices (e.g., ₹1,250.00) |
@@ -455,9 +456,9 @@ git push
 | Collection | What's stored | Key fields |
 |-----------|--------------|------------|
 | `users` | All user accounts | phone, name, role, pin, area, shop, lastLogin, lastLoginDevice, deviceInfo, activeSession, sessionExpiry, blocked |
-| `orders` | Every order | phone, items, total, status, date, actualItems, actualTotal |
+| `orders` | Every order | phone, items, total, status, date, actualItems, actualTotal, placedBy, modified, modifiedAt, modifiedBy, dispatchedAt, deliveredAt, cancelledAt, cancelledBy |
 | `products` | Product catalog | name, price, unit, type, group, active |
-| `ledger` | Payment entries | retailerId, amount, type (debit/credit), date |
+| `ledger` | Payment entries | retailerId, retailer, amount, type (debit/credit/opening), note, date, createdAt |
 | `retailer_balances` | Current dues | balance |
 | `settings` | App configuration | app (maintenance, orderStart/End, sessionTimeout, minOrderAmount, maxOrderItems, allowModify, defaultPin), banner, featureFlags, productGroups (daily[], seasonal[], codes{}), usage_[date] |
 | `support_tickets` | Help tickets | phone, subject, message, status, messages[] |
@@ -475,65 +476,39 @@ git push
 ---
 
 *Built with ♥ by Divyanshu Gupta*
-*Last updated: June 2026 | Version 2.6.0*
+*Last updated: June 2026 | Version 2.8.0*
 
 ---
 
-## 11. 🆕 Recent Features (June 2026)
+## 11. 🆕 Version History
+
+### v2.8.0 (Latest)
 
 | Feature | Description |
 |---------|-------------|
-| **PDF Code for Groups** | Each product group can have an optional short PDF Code (2-5 chars). Used as column header in Daily Sheet PDF instead of full group name. Set/edit inline from Manage Groups modal. Auto-suggested from group name. |
-| **Group Name Limit 20** | Group name limit increased to 20 chars (was 10). Name used in app UI, Code used in PDF. |
-| **Size-based Product Sorting** | Products within each group sorted by size — **big to small** (1L→500ml→200g). Uses `parseToGrams` helper with descending sort. |
-| **Seasonal PDF (List Format)** | Completely rewritten — now A4 Portrait list format. Each retailer as a block with grouped items inline. Only shows retailers with seasonal orders. No grid columns, no tight layout. |
-| **Rate Card PDF (Grouped)** | Rewritten — products shown in group-wise sections with bordered headers. Group name + code in brackets. B&W print friendly. |
-| **Retailer Price List PDF** | Updated to match Rate Card format — group-wise sections, code in brackets, price disclaimer at top. |
-| **Cancel Order (Retailer)** | Retailers can cancel their own order from Track page — only before dispatch. Shows Cancelled status with timestamp. |
-| **Cancel/Return/Undo (Admin)** | Admin can cancel pending orders, mark dispatched orders as returned, or undo dispatch from Daily Ledger. |
-| **Daily Sheet UI — Group Codes** | Table headers show `GROUP NAME (CODE)` format. Seasonal PDF button only appears when seasonal orders exist. |
-| **Inline Code Editing** | In Manage Groups modal, tap any group's code badge to edit/set code directly. No need to delete and re-add. |
-| **Auto-suggest PDF Code** | When typing group name, code field auto-suggests: initials for multi-word names, consonants for single words. |
-| **Label Limit 4 chars** | Product label (PDF column header) max 4 chars. Font auto-shrinks to fit column width. No truncation. |
-| **Daily Limit 20, Seasonal Unlimited** | Daily products max 20 (PDF grid layout). Seasonal has no limit (list-style PDF handles any count). |
-| **Price Disclaimer** | Highlighted amber banner on PlaceOrder, PriceList, and Checkout pages. Visible at top, not hidden in footer. |
-| **Dispatch Slip vs Invoice PDF** | Track page now generates 2 different PDFs: Dispatch Slip (blue, royal-700 themed) on Dispatched status with "quantities may adjust" note. Final Invoice (green, mint-700 themed) on Delivered status with delivery timestamp + "Thank you" note. Separate functions, separate designs. |
-| **Dashboard Donut Chart** | Delivery Progress replaced with premium animated SVG donut ring chart. Shows delivered (mint-500 arc) vs pending (amber-400 arc) with center percentage. Always visible — shows 0% empty state when no orders. Breakdown stats + mini bars on right side. No chart library needed (pure SVG + Framer Motion). |
-| **Dashboard Report Fix** | Report PDF was crashing because `stats.monthRevenue` didn't exist. Fixed with Overview section using available data (retailers, pending, overdue). |
-| **Dashboard Report Fix** | Report PDF was crashing because `stats.monthRevenue` didn't exist. Fixed with Overview section using available data (retailers, pending, overdue). |
-| **Retailer Block System** | Admin can block any retailer from Retailers page with inline form (reason dropdown + optional note). Blocked retailer can login but only sees "Account Suspended" page + Support page. Shows reason, dues, blocked date. "Request Unblock" auto-fills support ticket. Anti-spam: 1 ticket per category per 24h. |
-| **No Emojis — Premium Icons** | All cheap emojis replaced with Lucide React SVG icons (inline) and CSS styled dots. Consistent premium look across all pages. |
-| **Updated Guides** | Admin Guide + Retailer Guide updated with cancel order, PDF code, label limits. New FAQs added. |
-| **Home Tips Updated** | Retailer home page daily tips refreshed — cancel order, price list, font size tips added. |
-| **Manage Groups Modal** | Restructured — sticky header with readable hints, scrollable group list, sticky bottom add form. |
-| **Modular Dev Console** | `public/dev-console/` — Emergency backup console now fully modular (separate HTML, CSS, JS files). Tabs split into individual JS modules. Accessible at `/dev-console/`. Works independently even if React app crashes. |
-| **Dev Guide Page** | `/dev/guide` — Complete documentation for all 19 dev tools with step-by-step usage, pro tips, FAQ, and emergency procedures. Searchable. |
-| **Error Boundary System** | 3-level crash protection: RootErrorBoundary (catches everything), AppErrorBoundary (inside layouts), DevErrorBoundary (dev console). All auto-log to Firebase with severity levels. |
-| **App Footer** | Responsive footer component — desktop (3-column with brand, links, info) + mobile (compact). Supports retailer/admin variants. |
-| **Top Progress Bar** | Thin animated gradient bar during page transitions. Suspense-integrated PageLoader component. |
-| **Pull to Refresh** | Mobile gesture hook — pull down to refresh (80px threshold, 0.4x dampening). |
-| **Bottom Sheet Hook** | Swipe-to-dismiss gesture for modals/sheets (30% height or 100px threshold). |
-| **Font Size Setting** | Small/Normal/Large font preference. Persists in localStorage, applies CSS class to `<html>`. |
-| **Price List Page** | `/prices` — View all product prices grouped by daily/seasonal with search. **Download PDF rate card** with formatted table. |
-| **About / Privacy / Terms** | Legal pages — About Us, Privacy Policy, Terms & Conditions. All read from central config.js. |
-| **Auto Cleanup** | Runs once/day on app load. Deletes old errors (7d), old orders/audit (1yr). Respects `autoCleanup` setting. Logs to audit_log. |
-| **Usage Tracker** | Tracks Firestore reads/writes/deletes locally, syncs to Firebase every 5 min + on page unload. |
-| **API Response Monitor** | `/dev/api-monitor` — Ping all Firestore endpoints, measure latency, color-coded results, test history. |
-| **Backup & Restore** | `/dev/backup` — Snapshot critical collections to Firestore. Restore with double-confirm + progress bar. |
-| **Config Diff** | `/dev/config-diff` — Compare live settings vs defaults. Shows exactly what's been changed. Copy raw JSON. |
-| **Data Export** | `/dev/export` — Download any collection as JSON or CSV. Select specific or all collections. |
-| **Notification Center** | `/dev/notifications` — Send live banners + save to history. Clear active banner. Target: all/retailers/admin. |
-| **Real-time Dashboard** | `/dev/realtime` — Live active users, today's orders/revenue via onSnapshot. Pulse animation on new data. |
-| **Revenue Dashboard** | `/dev/revenue` — Today/7-day/30-day revenue cards + daily bar chart + summary stats. |
-| **Scheduled Tasks** | `/dev/tasks` — Create maintenance jobs (cleanup errors, sync balances, clear sessions). Run manually with real execution. |
-| **Firestore Rules (Proper)** | `firestore.rules` — Per-collection rules with field validation on create. Deny-all fallback. Covers all 16 collections. |
-| **Version Centralized** | `src/utils/config.js` → `version: '2.0.0'`. All pages read from here. |
-| **Standalone Dev Console** | `public/dev-console/` — Emergency backup console accessible at `/dev-console/`. Works independently even if main React app crashes. PIN protected. |
-| **App Ratings Page (Dev)** | `/dev/ratings` — View all user ratings with average, star distribution chart, individual ratings list, delete single/all. |
-| **Dark Confirmation Modals** | All sensitive dev actions require dark-themed confirmation modal before executing. |
-| **Smooth Page Transitions** | Suspense moved inside each layout component — sidebar/header stay stable during page switch, only content area shows skeleton. |
-| **Welcome Popup** | 3-slide onboarding: Install App → View Guide → Rate Us. Shows once on first login. |
-| **Premium Splash Screen** | Animated launch splash for first 7 days, then minimal. Auto-switches. |
+| **Admin Place Order** | `/admin/place-order` — Admin can place order on behalf of any retailer. Area filter, retailer search (name/phone/shop), balance badge, date picker (tomorrow to +7 days), duplicate order check, quick re-order (last order pre-fill), clear cart, error toast. |
+| **Edit Existing Order** | When duplicate order exists, admin can click "Edit Existing Order" to pre-fill quantities and update the order directly — no new order created. |
+| **Order Timeline** | OrderDetail page shows visual journey: Placed → Confirmed → Dispatched → Delivered with timestamps and colored status dots. |
+| **Order Edit in OrderDetail** | Admin can edit item quantities and remove items from any non-delivered order. |
+| **Retailer Performance Score** | Retailers page — click any retailer to see score /100. Breakdown: Frequency (orders/month), Reliability (cancel rate), Payment (due amount). Labels: Excellent/Good/Needs Attention. |
+| **Ledger: All Entries View** | New "All Entries" tab — see every individual ledger entry with edit (amount/note/type) and delete buttons. |
+| **Ledger: Date Picker** | Collect Payment and Set Balance modals now have date picker — admin can add entries for past dates. |
+| **Past Date Actions** | DailyLedger no longer read-only for past dates. Admin can dispatch/deliver orders from any date. |
+| **Quick Actions FAB** | Dashboard floating button (mobile only) — quick access to Place Order, Daily Sheet, Ledger. |
+| **Scroll Lock on Modals** | All modals (Retailers, DailyLedger, Ledger) lock body scroll when open. |
+| **Opening Balance Fix** | Balance calculation now uses `date` field (not `createdAt`) for proper opening balance display. |
+| **Due Badge Always Visible** | Ledger area tabs show due count badges even when retailer is selected. |
+| **Sidebar + Nav Integration** | Place Order added to admin sidebar and mobile More menu. |
+
+### v2.7.0
+
+| Feature | Description |
+|---------|-------------|
+| **Due from Ledger** | All balance/due calculations use ledger collection as source of truth (not retailer_balances). |
+| **Collapsible Sidebar** | Admin desktop sidebar collapses to icons on hover-out, expands on hover. |
+| **Overnight Order Window** | Supports order windows that span midnight (e.g., 8PM to 2AM). |
+| **Pull-to-Refresh Redesign** | New animated pull indicator with rotation and color change at threshold. |
+| **Faster Transitions** | Page transitions reduced to 0.1s opacity fade. No heavy mount animations. |
 
 ---
 
