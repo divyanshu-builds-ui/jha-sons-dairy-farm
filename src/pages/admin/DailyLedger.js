@@ -52,7 +52,7 @@ export default function DailyLedger() {
   const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const tomorrowLocal = (() => { const t = new Date(); t.setDate(t.getDate() + 1); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; })();
   const oneYearAgo = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
-  const isActionable = date === todayLocal || date === tomorrowLocal;
+  const isActionable = true; // Admin can update status anytime
 
   useEffect(() => { fetchData(); setPage(0); }, [date, selectedArea]);
 

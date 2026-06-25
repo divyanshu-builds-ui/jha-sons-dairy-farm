@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Printer, Calendar, ChevronLeft, ChevronRight, IndianRupee, Check, X, AlertTriangle, BookOpen, Download, Info } from 'lucide-react';
-import { db, collection, getDocs, addDoc, doc, getDoc, setDoc, query, where } from '../../services/firebase';
+import { Printer, Calendar, ChevronLeft, ChevronRight, IndianRupee, Check, X, AlertTriangle, BookOpen, Download, Info, Trash2, Edit3, Plus } from 'lucide-react';
+import { db, collection, getDocs, addDoc, deleteDoc, doc, getDoc, setDoc, updateDoc, query, where } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
+import { useConfirm } from '../../components/ConfirmModal';
 
 
 export default function Ledger() {
+  const confirm = useConfirm();
   const [retailers, setRetailers] = useState([]);
   const [selectedRetailer, setSelectedRetailer] = useState('');
   const [entries, setEntries] = useState([]);
@@ -31,12 +33,21 @@ export default function Ledger() {
   const [showBalModal, setShowBalModal] = useState(false);
   const [payAmount, setPayAmount] = useState('');
   const [payNote, setPayNote] = useState('Payment collected');
+  const [payDate, setPayDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
   const [balAmount, setBalAmount] = useState('');
+  const [balDate, setBalDate] = useState(() => { const d = new Date(); d.setDate(0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
   const [paying, setPaying] = useState(false);
   const [toast, setToast] = useState('');
   const [balConfirmStep, setBalConfirmStep] = useState(false);
   const [lastReceipt, setLastReceipt] = useState(null);
   const [dueList, setDueList] = useState([]);
+  const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'entries'
+  const [editEntry, setEditEntry] = useState(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editNote, setEditNote] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [showAddEntry, setShowAddEntry] = useState(false);
+  const [addEntryForm, setAddEntryForm] = useState({ amount: '', type: 'debit', note: '', date: '' });
 
   useEffect(() => { fetchRetailers(); }, []);
   useEffect(() => { if (selectedRetailer) fetchLedger(); }, [selectedRetailer, fromDate, toDate]);
@@ -57,7 +68,7 @@ export default function Ledger() {
         const rid = e.retailerId;
         if (!rid) return;
         if (!dueByRetailer[rid]) dueByRetailer[rid] = 0;
-        if (e.type === 'debit') dueByRetailer[rid] += (e.amount || 0);
+        if (e.type === 'debit' || e.type === 'opening') dueByRetailer[rid] += (e.amount || 0);
         else dueByRetailer[rid] -= (e.amount || 0);
       });
       const dues = Object.entries(dueByRetailer).filter(([, bal]) => bal > 0).map(([phone, balance]) => {
@@ -76,12 +87,24 @@ export default function Ledger() {
     } catch (err) {}
   };
 
+  // Parse Indian date format "15 Jun 2025" to Date object
+  const parseIndianDate = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    // Try manual parse for "15 Jun 2025" format
+    const parts = dateStr.match(/(\d+)\s+(\w+)\s+(\d+)/);
+    if (parts) return new Date(`${parts[2]} ${parts[1]}, ${parts[3]}`);
+    return null;
+  };
+
   // Opening balance (before fromDate)
   const openingBalance = (() => {
     const from = new Date(fromDate + 'T00:00:00');
     let bal = 0;
     allEntries.forEach(e => {
-      if (new Date(e.createdAt) < from) {
+      const entryDate = parseIndianDate(e.date);
+      if (entryDate && entryDate < from) {
         if (e.type === 'debit') bal += (e.amount || 0);
         else bal -= (e.amount || 0);
       }
@@ -102,7 +125,13 @@ export default function Ledger() {
       const current = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
       const dateStr = `${String(current.getDate()).padStart(2, '0')}/${String(current.getMonth() + 1).padStart(2, '0')}/${current.getFullYear()}`;
       const dateMatch = current.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      const dayEntries = allEntries.filter(e => e.date === dateMatch);
+      const dayEntries = allEntries.filter(e => {
+        // Match by date field OR by parsed date comparison for same day
+        if (e.date === dateMatch) return true;
+        const parsed = parseIndianDate(e.date);
+        if (parsed && parsed.getDate() === current.getDate() && parsed.getMonth() === current.getMonth() && parsed.getFullYear() === current.getFullYear()) return true;
+        return false;
+      });
 
       let productAmt = 0;
       let seasonalAmt = 0;
@@ -262,7 +291,7 @@ export default function Ledger() {
       await addDoc(collection(db, 'ledger'), {
         retailerId: selectedRetailer, retailer: retailerName,
         amount: amt, type: 'credit', note: payNote || 'Payment collected',
-        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        date: new Date(payDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
         createdAt: new Date().toISOString(),
       });
       const balRef = doc(db, 'retailer_balances', selectedRetailer);
@@ -276,6 +305,7 @@ export default function Ledger() {
       setToast(`₹${amt} collected from ${retailerName}`);
       setTimeout(() => setToast(''), 2500);
       fetchLedger();
+      fetchRetailers();
     } catch (err) { setToast("Payment failed! Check internet."); setTimeout(() => setToast(""), 3000); }
     setPaying(false);
   };
@@ -289,9 +319,9 @@ export default function Ledger() {
       {/* Area Tabs */}
       <div className="overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
         <div className="flex gap-1.5 w-max">
-          <button onClick={() => setSelectedArea('All')} className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${selectedArea === 'All' ? 'bg-royal-700 text-white shadow-sm' : 'bg-gray-100 dark:bg-[#111111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222222]'}`}>All Areas {!selectedRetailer && dueList.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">{dueList.length}</span>}</button>
+          <button onClick={() => setSelectedArea('All')} className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${selectedArea === 'All' ? 'bg-royal-700 text-white shadow-sm' : 'bg-gray-100 dark:bg-[#111111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222222]'}`}>All Areas {dueList.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">{dueList.length}</span>}</button>
           {areas.map(a => (
-            <button key={a} onClick={() => setSelectedArea(a)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${selectedArea === a ? 'bg-royal-700 text-white shadow-sm' : 'bg-gray-100 dark:bg-[#111111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222222]'}`}>{a} {!selectedRetailer && dueList.filter(d => d.area === a).length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">{dueList.filter(d => d.area === a).length}</span>}</button>
+            <button key={a} onClick={() => setSelectedArea(a)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${selectedArea === a ? 'bg-royal-700 text-white shadow-sm' : 'bg-gray-100 dark:bg-[#111111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222222]'}`}>{a} {dueList.filter(d => d.area === a).length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">{dueList.filter(d => d.area === a).length}</span>}</button>
           ))}
         </div>
       </div>
@@ -398,6 +428,13 @@ export default function Ledger() {
       )}
 
       {selectedRetailer && (<>
+      {/* View Toggle */}
+      <div className="flex items-center gap-2">
+        <button onClick={() => setViewMode('summary')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'summary' ? 'bg-royal-700 text-white shadow' : 'bg-white dark:bg-[#111111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222222]'}`}>Summary</button>
+        <button onClick={() => setViewMode('entries')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'entries' ? 'bg-royal-700 text-white shadow' : 'bg-white dark:bg-[#111111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222222]'}`}>All Entries</button>
+      </div>
+
+      {viewMode === 'summary' ? (<>
       {/* Summary */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#222222] rounded-lg px-3 py-2 text-center">
@@ -460,6 +497,164 @@ export default function Ledger() {
         </div>
       </div>
 
+      </>) : (
+      /* Entries View */
+      <>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-400">{allEntries.length} entries</p>
+        </div>
+
+        <div className="bg-white dark:bg-[#111111] rounded-2xl border border-gray-200 dark:border-[#222222] overflow-hidden">
+          <div className="divide-y divide-gray-100 dark:divide-[#222222] max-h-[60vh] overflow-y-auto">
+            {allEntries.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).map((entry) => (
+              <div key={entry.id} className={`px-4 py-3 flex items-center gap-3 ${entry.type === 'credit' ? 'bg-mint-50/30 dark:bg-mint-900/5' : ''}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${entry.type === 'credit' ? 'bg-mint-100 dark:bg-mint-900/30' : 'bg-red-50 dark:bg-red-900/20'}`}>
+                  <IndianRupee size={13} className={entry.type === 'credit' ? 'text-mint-600' : 'text-red-500'} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-black ${entry.type === 'credit' ? 'text-mint-600' : 'text-red-600'}`}>{entry.type === 'credit' ? '-' : '+'}{formatPrice(entry.amount)}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${entry.type === 'credit' ? 'bg-mint-100 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>{entry.type === 'credit' ? 'CREDIT' : 'DEBIT'}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 truncate">{entry.note || 'No note'} | {entry.date}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => { setEditEntry(entry); setEditAmount(String(entry.amount)); setEditNote(entry.note || ''); setEditDate(entry.date || ''); document.body.style.overflow = 'hidden'; }}
+                    className="w-7 h-7 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg flex items-center justify-center hover:bg-royal-50 dark:hover:bg-royal-900/30">
+                    <Edit3 size={11} className="text-royal-600 dark:text-royal-300" />
+                  </button>
+                  <button onClick={async () => {
+                    const ok = await confirm({ title: 'Delete Entry', message: `Delete ${entry.type} entry of ${formatPrice(entry.amount)}? This cannot be undone.`, confirmText: 'Delete', type: 'danger' });
+                    if (!ok) return;
+                    try {
+                      await deleteDoc(doc(db, 'ledger', entry.id));
+                      setToast('Entry deleted');
+                      setTimeout(() => setToast(''), 2500);
+                      fetchLedger();
+                      fetchRetailers();
+                    } catch (err) { setToast('Failed to delete'); setTimeout(() => setToast(''), 2500); }
+                  }}
+                    className="w-7 h-7 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30">
+                    <Trash2 size={11} className="text-red-500" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {allEntries.length === 0 && <p className="text-center text-sm text-gray-400 py-8">No entries found</p>}
+          </div>
+        </div>
+      </>
+      )}
+
+      {/* Edit Entry Modal */}
+      <AnimatePresence>
+        {editEntry && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => { setEditEntry(null); document.body.style.overflow = ''; }}>
+            <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }} className="bg-white dark:bg-[#111111] rounded-3xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-extrabold text-gray-800 dark:text-white text-lg">Edit Entry</h3>
+                <button onClick={() => { setEditEntry(null); document.body.style.overflow = ''; }} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400"><X size={14} /></button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Amount</label>
+                  <input type="number" min="0" value={editAmount} onChange={e => setEditAmount(e.target.value)}
+                    onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                    className="w-full py-3 px-4 text-lg font-bold text-center border border-gray-200 dark:border-[#333333] rounded-xl focus:border-royal-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Note</label>
+                  <input type="text" value={editNote} onChange={e => setEditNote(e.target.value)}
+                    className="w-full py-2.5 px-4 text-sm border border-gray-200 dark:border-[#333333] rounded-xl focus:border-royal-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Type</label>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditEntry(prev => ({ ...prev, type: 'debit' }))} className={`flex-1 py-2.5 rounded-xl text-xs font-bold ${editEntry.type === 'debit' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#333333]'}`}>Debit</button>
+                    <button onClick={() => setEditEntry(prev => ({ ...prev, type: 'credit' }))} className={`flex-1 py-2.5 rounded-xl text-xs font-bold ${editEntry.type === 'credit' ? 'bg-mint-600 text-white' : 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#333333]'}`}>Credit</button>
+                  </div>
+                </div>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={async () => {
+                  const amt = Number(editAmount) || 0;
+                  if (amt <= 0) return;
+                  try {
+                    await updateDoc(doc(db, 'ledger', editEntry.id), { amount: amt, note: editNote, type: editEntry.type });
+                    setEditEntry(null); document.body.style.overflow = '';
+                    setToast('Entry updated');
+                    setTimeout(() => setToast(''), 2500);
+                    fetchLedger();
+                    fetchRetailers();
+                  } catch (err) { setToast('Failed to update'); setTimeout(() => setToast(''), 2500); }
+                }} disabled={!(Number(editAmount) > 0)}
+                  className="w-full bg-royal-600 text-white font-bold py-3.5 rounded-xl shadow-md text-sm disabled:opacity-50">
+                  Save Changes
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Entry Modal */}
+      <AnimatePresence>
+        {showAddEntry && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => { setShowAddEntry(false); document.body.style.overflow = ''; }}>
+            <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }} className="bg-white dark:bg-[#111111] rounded-3xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-extrabold text-gray-800 dark:text-white text-lg">Add Ledger Entry</h3>
+                <button onClick={() => { setShowAddEntry(false); document.body.style.overflow = ''; }} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400"><X size={14} /></button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Type</label>
+                  <div className="flex gap-2">
+                    <button onClick={() => setAddEntryForm(f => ({ ...f, type: 'debit' }))} className={`flex-1 py-2.5 rounded-xl text-xs font-bold ${addEntryForm.type === 'debit' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#333333]'}`}>Debit (Due)</button>
+                    <button onClick={() => setAddEntryForm(f => ({ ...f, type: 'credit' }))} className={`flex-1 py-2.5 rounded-xl text-xs font-bold ${addEntryForm.type === 'credit' ? 'bg-mint-600 text-white' : 'bg-gray-100 dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#333333]'}`}>Credit (Payment)</button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Amount</label>
+                  <input type="number" min="0" placeholder="Enter amount" value={addEntryForm.amount} onChange={e => setAddEntryForm(f => ({ ...f, amount: e.target.value }))}
+                    onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                    className="w-full py-3 px-4 text-lg font-bold text-center border border-gray-200 dark:border-[#333333] rounded-xl focus:border-royal-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Note</label>
+                  <input type="text" placeholder="e.g. Delivery, Payment, Adjustment" value={addEntryForm.note} onChange={e => setAddEntryForm(f => ({ ...f, note: e.target.value }))}
+                    className="w-full py-2.5 px-4 text-sm border border-gray-200 dark:border-[#333333] rounded-xl focus:border-royal-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Date</label>
+                  <input type="date" value={addEntryForm.date} onChange={e => setAddEntryForm(f => ({ ...f, date: e.target.value }))}
+                    max={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}
+                    className="w-full py-2.5 px-4 text-sm font-bold border border-gray-200 dark:border-[#333333] rounded-xl focus:border-royal-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
+                </div>
+                <motion.button whileTap={{ scale: 0.97 }} onClick={async () => {
+                  const amt = Number(addEntryForm.amount) || 0;
+                  if (amt <= 0 || !addEntryForm.date) return;
+                  try {
+                    await addDoc(collection(db, 'ledger'), {
+                      retailerId: selectedRetailer, retailer: retailerName,
+                      amount: amt, type: addEntryForm.type, note: addEntryForm.note || (addEntryForm.type === 'debit' ? 'Manual debit' : 'Manual credit'),
+                      date: new Date(addEntryForm.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+                      createdAt: new Date().toISOString(),
+                    });
+                    setShowAddEntry(false); document.body.style.overflow = '';
+                    setToast(`Entry added: ${formatPrice(amt)} ${addEntryForm.type}`);
+                    setTimeout(() => setToast(''), 2500);
+                    fetchLedger();
+                    fetchRetailers();
+                  } catch (err) { setToast('Failed to add entry'); setTimeout(() => setToast(''), 2500); }
+                }} disabled={!(Number(addEntryForm.amount) > 0) || !addEntryForm.date}
+                  className="w-full bg-royal-600 text-white font-bold py-3.5 rounded-xl shadow-md text-sm disabled:opacity-50">
+                  Add Entry
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       </>)}
 
       {/* Collect Payment Modal */}
@@ -482,7 +677,7 @@ export default function Ledger() {
               </div>
 
               {/* Amount */}
-              <div className="mb-4">
+              <div className="mb-3">
                 <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Amount (₹)</label>
                 <input type="number" min="0" placeholder="Enter amount" value={payAmount}
                   onChange={e => {
@@ -499,10 +694,18 @@ export default function Ledger() {
               </div>
 
               {/* Note */}
-              <div className="mb-5">
+              <div className="mb-3">
                 <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Note</label>
                 <input type="text" value={payNote} onChange={e => setPayNote(e.target.value)}
                   className="w-full py-2.5 px-4 text-sm border border-gray-200 dark:border-[#333333] rounded-xl focus:border-royal-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
+              </div>
+
+              {/* Date */}
+              <div className="mb-5">
+                <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Date</label>
+                <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
+                  max={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}
+                  className="w-full py-2.5 px-4 text-sm font-bold border border-gray-200 dark:border-[#333333] rounded-xl focus:border-royal-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
               </div>
 
               {Number(payAmount) > 0 && (
@@ -540,12 +743,19 @@ export default function Ledger() {
                   <p className="text-base font-black text-red-600">{formatPrice(dailyRows.length > 0 ? dailyRows[dailyRows.length - 1].closing : openingBalance)}</p>
                 </div>
 
-                <div className="mb-5">
+                <div className="mb-4">
                   <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Pending Amount (₹)</label>
                   <input type="number" min="0" placeholder="Enter due amount" value={balAmount}
                     onChange={e => setBalAmount(e.target.value)}
                     onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                     className="w-full py-3.5 px-4 text-xl font-bold text-center border border-gray-200 dark:border-[#333333] rounded-xl focus:border-amber-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
+                </div>
+
+                <div className="mb-5">
+                  <label className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1.5 block">Entry Date</label>
+                  <input type="date" value={balDate} onChange={e => setBalDate(e.target.value)}
+                    max={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}
+                    className="w-full py-2.5 px-4 text-sm font-bold border border-gray-200 dark:border-[#333333] rounded-xl focus:border-amber-400 focus:outline-none bg-white dark:bg-[#1a1a1a] dark:text-white" />
                 </div>
 
                 <motion.button whileTap={{ scale: 0.97 }} onClick={() => {
@@ -584,7 +794,7 @@ export default function Ledger() {
                         await addDoc(collection(db, 'ledger'), {
                           retailerId: selectedRetailer, retailer: retailerName,
                           amount: amt, type: 'debit', note: 'Opening balance (offline transfer)',
-                          date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+                          date: new Date(balDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
                           createdAt: new Date().toISOString(),
                         });
                       }
@@ -592,6 +802,7 @@ export default function Ledger() {
                       setToast(`Balance set: ₹${amt} for ${retailerName}`);
                       setTimeout(() => setToast(''), 2500);
                       fetchLedger();
+                      fetchRetailers();
                       setPaying(false);
                     }} disabled={paying} className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-amber-500 shadow-md disabled:opacity-50">
                       {paying ? 'Setting...' : 'Confirm'}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ShoppingCart, Plus, Minus, X, Check, Users, MapPin, ClipboardList, ArrowRight, AlertTriangle, RotateCcw, Trash2, Calendar } from 'lucide-react';
-import { db, doc, getDoc, collection, getDocs, addDoc, query, where } from '../../services/firebase';
+import { Search, ShoppingCart, Plus, Minus, X, Check, Users, MapPin, ClipboardList, ArrowRight, AlertTriangle, RotateCcw, Trash2, Calendar, Edit3 } from 'lucide-react';
+import { db, doc, getDoc, collection, getDocs, addDoc, updateDoc, query, where } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { useConfirm } from '../../components/ConfirmModal';
 
@@ -23,7 +23,8 @@ export default function AdminPlaceOrder() {
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [balances, setBalances] = useState({});
   const [lastOrder, setLastOrder] = useState(null);
-  const [orderDate, setOrderDate] = useState('tomorrow'); // 'tomorrow' or 'YYYY-MM-DD'
+  const [orderDate, setOrderDate] = useState('tomorrow');
+  const [editingOrder, setEditingOrder] = useState(false); // true when editing existing order
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -86,9 +87,10 @@ export default function AdminPlaceOrder() {
 
   // Check duplicate order + fetch last order when retailer is selected
   useEffect(() => {
-    if (!selectedRetailer) { setDuplicateOrder(null); setLastOrder(null); return; }
+    if (!selectedRetailer) { setDuplicateOrder(null); setLastOrder(null); setEditingOrder(false); return; }
     const checkDuplicate = async () => {
       setCheckingDuplicate(true);
+      setEditingOrder(false);
       try {
         const dateStr = getOrderDateStr();
         const snap = await getDocs(query(collection(db, 'orders'), where('phone', '==', selectedRetailer.phone), where('date', '==', dateStr)));
@@ -146,32 +148,42 @@ export default function AdminPlaceOrder() {
 
   const placeOrder = async () => {
     if (!selectedRetailer || cartItems.length === 0) return;
-    const ok = await confirm({ title: 'Place Order', message: `Place order of ${cartItems.length} items (${formatPrice(cartTotal)}) for ${selectedRetailer.name}?`, confirmText: 'Place Order', type: 'warning' });
+    const isEdit = editingOrder && duplicateOrder;
+    const ok = await confirm({ title: isEdit ? 'Update Order' : 'Place Order', message: isEdit ? `Update existing order to ${cartItems.length} items (${formatPrice(cartTotal)}) for ${selectedRetailer.name}?` : `Place order of ${cartItems.length} items (${formatPrice(cartTotal)}) for ${selectedRetailer.name}?`, confirmText: isEdit ? 'Update' : 'Place Order', type: 'warning' });
     if (!ok) return;
     setPlacing(true);
     try {
       const orderItems = cartItems.map(i => ({ name: i.name, qty: `${i.qty} ${i.unit}`, price: (i.price || 0) * i.qty, unitPrice: i.price || 0 }));
 
-      const orderData = {
-        retailerId: selectedRetailer.phone,
-        retailer: selectedRetailer.name,
-        phone: selectedRetailer.phone,
-        area: selectedRetailer.area || '',
-        items: orderItems,
-        total: cartTotal,
-        status: 'Confirmed',
-        date: getOrderDateStr(),
-        time: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }),
-        orderedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        placedBy: 'admin',
-      };
-
-      const orderRef = await addDoc(collection(db, 'orders'), orderData);
-      await addDoc(collection(db, 'order_history'), { ...orderData, orderId: orderRef.id, historyCreatedAt: new Date().toISOString() });
+      if (isEdit) {
+        // Update existing order
+        await updateDoc(doc(db, 'orders', duplicateOrder.id), { items: orderItems, total: cartTotal, modified: true, modifiedAt: new Date().toISOString(), modifiedBy: 'admin' });
+        // Sync to order_history
+        const hSnap = await getDocs(query(collection(db, 'order_history'), where('orderId', '==', duplicateOrder.id)));
+        if (!hSnap.empty) await updateDoc(doc(db, 'order_history', hSnap.docs[0].id), { items: orderItems, total: cartTotal, modified: true, modifiedAt: new Date().toISOString() });
+      } else {
+        // Create new order
+        const orderData = {
+          retailerId: selectedRetailer.phone,
+          retailer: selectedRetailer.name,
+          phone: selectedRetailer.phone,
+          area: selectedRetailer.area || '',
+          items: orderItems,
+          total: cartTotal,
+          status: 'Confirmed',
+          date: getOrderDateStr(),
+          time: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          orderedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          placedBy: 'admin',
+        };
+        const orderRef = await addDoc(collection(db, 'orders'), orderData);
+        await addDoc(collection(db, 'order_history'), { ...orderData, orderId: orderRef.id, historyCreatedAt: new Date().toISOString() });
+      }
 
       setSuccess(true);
       setQuantities({});
+      setEditingOrder(false);
       setTimeout(() => { setSuccess(false); setSelectedRetailer(null); }, 2500);
     } catch (err) {
       showToast('Order failed! Check internet and try again.', 'error');
@@ -323,14 +335,14 @@ export default function AdminPlaceOrder() {
                   <p className="text-sm font-extrabold text-gray-800 dark:text-white">Ordering for: {selectedRetailer.name}</p>
                   <p className="text-[11px] text-gray-400">{selectedRetailer.phone} • {selectedRetailer.area}</p>
                 </div>
-                {cartItems.length > 0 && !duplicateOrder && (
+                {cartItems.length > 0 && (!duplicateOrder || editingOrder) && (
                   <div className="flex items-center gap-2">
                     <button onClick={() => setQuantities({})} className="px-3 py-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-500 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
                       <Trash2 size={14} />
                     </button>
                     <button onClick={placeOrder} disabled={placing || checkingDuplicate}
                       className="px-5 py-2.5 bg-gradient-to-r from-royal-700 to-mint-700 text-white text-sm font-bold rounded-xl shadow-lg disabled:opacity-50">
-                      {placing ? 'Placing...' : `Place Order • ${formatPrice(cartTotal)}`}
+                      {placing ? 'Saving...' : editingOrder ? `Update Order • ${formatPrice(cartTotal)}` : `Place Order • ${formatPrice(cartTotal)}`}
                     </button>
                   </div>
                 )}
@@ -352,17 +364,39 @@ export default function AdminPlaceOrder() {
                 <span className="text-[10px] text-gray-400 font-medium">Delivery: {getOrderDateStr()}</span>
               </div>
 
-              {/* Duplicate Order Warning */}
+              {/* Duplicate Order Warning + Edit */}
               {duplicateOrder && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3.5 flex items-start gap-3">
-                  <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Order already exists for tomorrow</p>
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
-                      {duplicateOrder.items?.length} items • {formatPrice(duplicateOrder.total)} • Status: {duplicateOrder.status}
-                    </p>
-                    <p className="text-[10px] text-amber-500 dark:text-amber-500 mt-1">This retailer already has an active order. Placing a new one will create a duplicate.</p>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3.5">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Order exists for {getOrderDateStr()}</p>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+                        {duplicateOrder.items?.length} items • {formatPrice(duplicateOrder.total)} • Status: {duplicateOrder.status}
+                      </p>
+                    </div>
                   </div>
+                  {!editingOrder && (duplicateOrder.status === 'Confirmed' || duplicateOrder.status === 'Pending') && (
+                    <button onClick={() => {
+                      const qtyMap = {};
+                      (duplicateOrder.items || []).forEach(item => {
+                        const match = products.find(p => p.name === item.name);
+                        if (match) {
+                          const num = parseInt(item.qty) || 0;
+                          if (num > 0) qtyMap[match.id] = num;
+                        }
+                      });
+                      setQuantities(qtyMap);
+                      setEditingOrder(true);
+                    }}
+                      className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#111111] border border-amber-300 dark:border-amber-700 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors w-full justify-center">
+                      <Edit3 size={14} className="text-amber-600" />
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-300">Edit Existing Order</span>
+                    </button>
+                  )}
+                  {editingOrder && (
+                    <p className="mt-2 text-[10px] font-bold text-royal-600 dark:text-royal-400 bg-royal-50 dark:bg-royal-900/20 px-3 py-1.5 rounded-lg text-center">Editing mode — modify items below and save</p>
+                  )}
                 </div>
               )}
 
@@ -502,12 +536,35 @@ export default function AdminPlaceOrder() {
 
             {/* Duplicate Warning Mobile */}
             {duplicateOrder && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-                <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300">Order exists for tomorrow</p>
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">{duplicateOrder.items?.length} items • {formatPrice(duplicateOrder.total)} • {duplicateOrder.status}</p>
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">Order exists for {getOrderDateStr()}</p>
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">{duplicateOrder.items?.length} items • {formatPrice(duplicateOrder.total)} • {duplicateOrder.status}</p>
+                  </div>
                 </div>
+                {!editingOrder && (duplicateOrder.status === 'Confirmed' || duplicateOrder.status === 'Pending') && (
+                  <button onClick={() => {
+                    const qtyMap = {};
+                    (duplicateOrder.items || []).forEach(item => {
+                      const match = products.find(p => p.name === item.name);
+                      if (match) {
+                        const num = parseInt(item.qty) || 0;
+                        if (num > 0) qtyMap[match.id] = num;
+                      }
+                    });
+                    setQuantities(qtyMap);
+                    setEditingOrder(true);
+                  }}
+                    className="mt-2.5 flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#111111] border border-amber-300 dark:border-amber-700 rounded-xl w-full justify-center active:scale-[0.98]">
+                    <Edit3 size={13} className="text-amber-600" />
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300">Edit Existing Order</span>
+                  </button>
+                )}
+                {editingOrder && (
+                  <p className="mt-2 text-[10px] font-bold text-royal-600 dark:text-royal-400 bg-royal-50 dark:bg-royal-900/20 px-3 py-1.5 rounded-lg text-center">Editing mode — modify items and save</p>
+                )}
               </div>
             )}
 
@@ -546,7 +603,7 @@ export default function AdminPlaceOrder() {
                   onChange={e => setOrderDate(e.target.value || 'tomorrow')}
                   className={`pl-8 pr-3 py-2 text-xs font-bold rounded-xl border transition-all ${orderDate !== 'tomorrow' ? 'bg-royal-700 text-white border-royal-700' : 'bg-white dark:bg-[#111111] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-[#222222]'}`} />
               </div>
-              <span className="shrink-0 text-[10px] text-gray-400 font-medium">📅 {getOrderDateStr()}</span>
+              <span className="shrink-0 text-[10px] text-gray-400 font-medium">Delivery: {getOrderDateStr()}</span>
             </div>
 
             {/* Product Search */}
@@ -579,7 +636,7 @@ export default function AdminPlaceOrder() {
                       <button onClick={(e) => { e.stopPropagation(); setQuantities({}); }} className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20">
                         <Trash2 size={13} />
                       </button>
-                      <span className="text-sm font-bold bg-white/15 px-3.5 py-1.5 rounded-lg">{placing ? 'Placing...' : duplicateOrder ? '⚠️ Place Anyway →' : 'Place Order →'}</span>
+                    <span className="text-sm font-bold bg-white/15 px-3.5 py-1.5 rounded-lg">{placing ? 'Saving...' : editingOrder ? 'Update Order' : duplicateOrder ? 'Place Anyway' : 'Place Order'}</span>
                     </div>
                   </button>
                 </motion.div>
