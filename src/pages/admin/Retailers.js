@@ -49,6 +49,7 @@ export default function Retailers() {
   const [blockReason, setBlockReason] = useState('');
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [confirmStep, setConfirmStep] = useState(false);
+  const [performanceScore, setPerformanceScore] = useState(null);
   // Area management
   const [showAreaModal, setShowAreaModal] = useState(false);
   const [newArea, setNewArea] = useState('');
@@ -65,7 +66,7 @@ export default function Retailers() {
       if (areasDoc.exists()) setAreas(areasDoc.data().list || []);
       const appDoc = await getDoc(doc(db, 'settings', 'app'));
       if (appDoc.exists() && appDoc.data().defaultPin) setDefaultPin(appDoc.data().defaultPin);
-      // Calculate balances from ledger (source of truth)
+      // Calculate balances from ledger (source of truth) — includes opening balance
       const allLedgerSnap = await getDocs(collection(db, 'ledger'));
       const balMap = {};
       allLedgerSnap.docs.forEach(d => {
@@ -73,7 +74,7 @@ export default function Retailers() {
         const rid = e.retailerId;
         if (!rid) return;
         if (!balMap[rid]) balMap[rid] = 0;
-        if (e.type === 'debit') balMap[rid] += (e.amount || 0);
+        if (e.type === 'debit' || e.type === 'opening') balMap[rid] += (e.amount || 0);
         else balMap[rid] -= (e.amount || 0);
       });
       setBalances(balMap);
@@ -89,14 +90,39 @@ export default function Retailers() {
 
   const openDetail = async (r) => {
     setSelectedRetailer(r); setEditMode(false); setEditForm({ ...r });
+    document.body.style.overflow = 'hidden';
     try {
       const snap = await getDocs(query(collection(db, 'orders'), where('phone', '==', r.phone)));
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const orders = snap.docs.map(d => d.data()).filter(o => new Date(o.createdAt) >= thirtyDaysAgo);
+      const allOrders = snap.docs.map(d => d.data());
+      const orders = allOrders.filter(o => new Date(o.createdAt) >= thirtyDaysAgo);
       orders.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
       setOrderHistory(orders);
-    } catch (err) { setOrderHistory([]); }
+
+      // Calculate performance score
+      const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const recent = allOrders.filter(o => new Date(o.createdAt) >= ninetyDaysAgo);
+      const totalOrders = recent.length;
+      const cancelled = recent.filter(o => o.status === 'Cancelled').length;
+      const delivered = recent.filter(o => o.status === 'Delivered').length;
+      const returned = recent.filter(o => o.status === 'Returned').length;
+
+      // Frequency score (max 40) — based on orders per month
+      const ordersPerMonth = totalOrders / 3;
+      const freqScore = Math.min(40, Math.round((ordersPerMonth / 20) * 40));
+
+      // Reliability score (max 35) — low cancellation & return rate
+      const badRate = totalOrders > 0 ? (cancelled + returned) / totalOrders : 0;
+      const reliabilityScore = Math.round((1 - badRate) * 35);
+
+      // Payment score (max 25) — based on due amount
+      const due = balances[r.phone] || 0;
+      const payScore = due <= 0 ? 25 : due < 2000 ? 20 : due < 5000 ? 12 : due < 10000 ? 5 : 0;
+
+      const total = freqScore + reliabilityScore + payScore;
+      setPerformanceScore({ total, freq: freqScore, reliability: reliabilityScore, payment: payScore, ordersPerMonth: ordersPerMonth.toFixed(1), cancelRate: totalOrders > 0 ? Math.round(badRate * 100) : 0, totalOrders });
+    } catch (err) { setOrderHistory([]); setPerformanceScore(null); }
   };
 
   const saveEdit = async () => {
@@ -141,6 +167,7 @@ export default function Retailers() {
         }
       }
       setSelectedRetailer(null); setEditMode(false);
+      document.body.style.overflow = '';
       showToast('Retailer updated successfully'); fetchData();
     } catch (err) {
       console.error('Save error:', err);
@@ -156,6 +183,7 @@ export default function Retailers() {
     try {
       await deleteDoc(doc(db, 'users', phone));
       setSelectedRetailer(null);
+      document.body.style.overflow = '';
       showToast('Retailer deleted successfully'); fetchData();
     } catch (err) {
       console.error('Delete error:', err);
@@ -180,6 +208,7 @@ export default function Retailers() {
         role: 'retailer', createdAt: new Date().toISOString(),
       });
       setShowAdd(false); setAddForm({ name: '', phone: '', shop: '', area: '', address: '', pin: '', deliveryOrder: '' });
+      document.body.style.overflow = '';
       showToast('Retailer added successfully'); fetchData();
     } catch (err) {
       console.error('Add error:', err);
@@ -256,7 +285,7 @@ export default function Retailers() {
             })}
           </div>
         </div>
-        <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowAreaModal(true)}
+        <motion.button whileTap={{ scale: 0.93 }} onClick={() => { setShowAreaModal(true); document.body.style.overflow = 'hidden'; }}
           className="shrink-0 w-10 h-10 bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#222222] rounded-xl flex items-center justify-center hover:border-royal-300 transition-colors">
           <Settings2 size={16} className="text-gray-500 dark:text-gray-400" />
         </motion.button>
@@ -318,7 +347,7 @@ export default function Retailers() {
         }} className="flex items-center gap-1.5 text-sm font-bold bg-[#0f172a] text-white px-3 py-3 rounded-2xl shadow-sm shrink-0">
           <Printer size={14} />
         </motion.button>
-        <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowAdd(true)}
+        <motion.button whileTap={{ scale: 0.93 }} onClick={() => { setShowAdd(true); document.body.style.overflow = 'hidden'; }}
           className="flex items-center gap-1.5 text-sm font-bold bg-gradient-to-r from-royal-700 via-royal-600 to-mint-700 text-white px-4 py-3 rounded-2xl shadow-lg shadow-royal-600/20 shrink-0">
           <Plus size={15} />
         </motion.button>
@@ -367,7 +396,7 @@ export default function Retailers() {
         {showAreaModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4"
-            onClick={() => setShowAreaModal(false)}>
+            onClick={() => { setShowAreaModal(false); document.body.style.overflow = ''; }}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 220 }}
               className="bg-white dark:bg-[#111111] w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl max-h-[80vh] flex flex-col"
@@ -385,7 +414,7 @@ export default function Retailers() {
                       <p className="text-[10px] text-gray-400">{areas.length} areas • {retailers.length} retailers</p>
                     </div>
                   </div>
-                  <button onClick={() => setShowAreaModal(false)} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400"><X size={14} /></button>
+                  <button onClick={() => { setShowAreaModal(false); document.body.style.overflow = ''; }} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400"><X size={14} /></button>
                 </div>
               </div>
               {/* Area List */}
@@ -449,7 +478,7 @@ export default function Retailers() {
         {selectedRetailer && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4"
-            onClick={() => setSelectedRetailer(null)}>
+            onClick={() => { setSelectedRetailer(null); document.body.style.overflow = ''; }}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 220 }}
               className="bg-white dark:bg-[#111111] w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
@@ -469,7 +498,7 @@ export default function Retailers() {
                 </div>
                 <div className="flex gap-2">
                   {!editMode && <button onClick={() => setEditMode(true)} className="text-[10px] font-bold text-royal-600 dark:text-royal-400 bg-royal-50 dark:bg-royal-900/30 px-3 py-1.5 rounded-lg border border-royal-100 dark:border-royal-800 hover:bg-royal-100 dark:hover:bg-royal-900/50 transition-colors">Edit</button>}
-                  <button onClick={() => setSelectedRetailer(null)} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 dark:hover:bg-[#222222] transition-colors"><X size={14} /></button>
+                  <button onClick={() => { setSelectedRetailer(null); document.body.style.overflow = ''; }} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 dark:hover:bg-[#222222] transition-colors"><X size={14} /></button>
                 </div>
               </div>
 
@@ -655,6 +684,42 @@ export default function Retailers() {
                 </motion.button>
               )}
 
+              {/* Performance Score */}
+              {!editMode && performanceScore && (
+                <div className="mt-6 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp size={14} className="text-royal-600" />
+                    <h4 className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Performance Score</h4>
+                    <span className={`ml-auto text-lg font-black ${performanceScore.total >= 75 ? 'text-mint-600' : performanceScore.total >= 50 ? 'text-amber-600' : 'text-red-500'}`}>{performanceScore.total}<span className="text-xs text-gray-400 font-bold">/100</span></span>
+                  </div>
+                  {/* Score bar */}
+                  <div className="w-full h-2.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-full overflow-hidden mb-3">
+                    <div className={`h-full rounded-full transition-all ${performanceScore.total >= 75 ? 'bg-mint-500' : performanceScore.total >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${performanceScore.total}%` }} />
+                  </div>
+                  {/* Breakdown */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-gray-50 dark:bg-[#1a1a1a]/50 rounded-xl px-3 py-2 text-center">
+                      <p className="text-[9px] font-bold text-gray-400 uppercase">Frequency</p>
+                      <p className="text-sm font-black text-gray-800 dark:text-white">{performanceScore.freq}<span className="text-[9px] text-gray-400">/40</span></p>
+                      <p className="text-[9px] text-gray-400">{performanceScore.ordersPerMonth}/mo</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-[#1a1a1a]/50 rounded-xl px-3 py-2 text-center">
+                      <p className="text-[9px] font-bold text-gray-400 uppercase">Reliability</p>
+                      <p className="text-sm font-black text-gray-800 dark:text-white">{performanceScore.reliability}<span className="text-[9px] text-gray-400">/35</span></p>
+                      <p className="text-[9px] text-gray-400">{performanceScore.cancelRate}% cancel</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-[#1a1a1a]/50 rounded-xl px-3 py-2 text-center">
+                      <p className="text-[9px] font-bold text-gray-400 uppercase">Payment</p>
+                      <p className="text-sm font-black text-gray-800 dark:text-white">{performanceScore.payment}<span className="text-[9px] text-gray-400">/25</span></p>
+                      <p className="text-[9px] text-gray-400">{(balances[selectedRetailer?.phone] || 0) > 0 ? formatPrice(balances[selectedRetailer.phone]) + ' due' : 'Clear'}</p>
+                    </div>
+                  </div>
+                  <p className={`text-[10px] font-bold mt-2 text-center px-3 py-1.5 rounded-lg ${performanceScore.total >= 75 ? 'bg-mint-50 dark:bg-mint-900/20 text-mint-700 dark:text-mint-300' : performanceScore.total >= 50 ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300'}`}>
+                    {performanceScore.total >= 75 ? '⭐ Excellent Retailer' : performanceScore.total >= 50 ? '👍 Good Retailer' : '⚠️ Needs Attention'}
+                  </p>
+                </div>
+              )}
+
               {/* Order History */}
               {!editMode && (
                 <div className="mt-6">
@@ -699,7 +764,7 @@ export default function Retailers() {
       <AnimatePresence>
         {showAdd && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => { setShowAdd(false); document.body.style.overflow = ''; }}>
             <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
               className="bg-white dark:bg-[#111111] rounded-3xl p-6 w-full max-w-sm shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -710,7 +775,7 @@ export default function Retailers() {
                   </div>
                   <h3 className="font-extrabold text-gray-800 dark:text-white text-[16px]">Add Retailer</h3>
                 </div>
-                <button onClick={() => setShowAdd(false)} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 dark:hover:bg-[#222222] transition-colors"><X size={14} /></button>
+                <button onClick={() => { setShowAdd(false); document.body.style.overflow = ''; }} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 dark:hover:bg-[#222222] transition-colors"><X size={14} /></button>
               </div>
               <div className="space-y-3.5">
                 <div>

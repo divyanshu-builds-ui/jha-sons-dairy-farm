@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Outlet, NavLink, useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Users, ShoppingBag, Warehouse, BookOpen, X, LogOut, Settings, Headphones, Truck, Megaphone, Code, MoreHorizontal, Moon, Sun, Type, AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, Warehouse, BookOpen, X, LogOut, Settings, Headphones, Truck, Megaphone, Code, MoreHorizontal, Moon, Sun, Type, AlertCircle, AlertTriangle, CheckCircle2, Info, ClipboardList } from 'lucide-react';
 import { useConfirm } from '../../components/ConfirmModal';
 import AppFooter from '../../components/AppFooter';
 import { db, doc, cachedGetDoc } from '../../services/firebase';
@@ -20,6 +20,7 @@ const sidebarLinks = [
   { to: '/admin/inventory', label: 'Inventory', Icon: Warehouse },
   { to: '/admin/ledger', label: 'Ledger', Icon: BookOpen },
   { to: '/admin/support', label: 'Tickets', Icon: Headphones },
+  { to: '/admin/place-order', label: 'Place Order', Icon: ClipboardList },
   { to: '/admin/announcements', label: 'Announcements', Icon: Megaphone },
   { to: '/admin/settings', label: 'Settings', Icon: Settings },
 ];
@@ -33,6 +34,7 @@ const bottomNavLinks = [
 
 const moreLinks = [
   { to: '/admin/retailers', label: 'Retailers', Icon: Users },
+  { to: '/admin/place-order', label: 'Place Order', Icon: ClipboardList },
   { to: '/admin/inventory', label: 'Inventory', Icon: Warehouse },
   { to: '/admin/support', label: 'Tickets', Icon: Headphones },
   { to: '/admin/announcements', label: 'Announce', Icon: Megaphone },

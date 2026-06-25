@@ -162,6 +162,7 @@ export default function DailyLedger() {
   const openModal = async (ret) => {
     const oData = orderMap[ret.phone];
     if (!oData || oData.status === 'Delivered') return;
+    document.body.style.overflow = 'hidden';
     const isDispatched = oData.status === 'Dispatched';
     if (isDispatched) {
       const orderDoc = await getDoc(doc(db, 'orders', oData.docIds[0]));
@@ -293,6 +294,7 @@ export default function DailyLedger() {
         if (!hSnap1.empty) await updateDoc(doc(db, 'order_history', hSnap1.docs[0].id), { status: 'Dispatched', dispatchedAt: new Date().toISOString() });
       }
       setModal(null); setShowDispatchConfirm(false);
+      document.body.style.overflow = '';
       setToast(`Dispatched — ${modal.retailer.name}`);
       setTimeout(() => setToast(''), 2500);
       fetchData();
@@ -354,6 +356,7 @@ export default function DailyLedger() {
         setLastReceipt({ name: modal.retailer.name, phone: modal.retailer.phone, shop: modal.retailer.shop || '', amount: payment, note: 'Payment on delivery', prevDue: curBal + actualTotal, balanceAfter: curBal + actualTotal - payment });
       }
       setModal(null);
+      document.body.style.overflow = '';
       setToast(`Delivered — ${modal.retailer.name}`);
       setTimeout(() => setToast(''), 2500);
       fetchData();
@@ -854,14 +857,14 @@ export default function DailyLedger() {
       {/* Dispatch / Deliver Modal */}
       <AnimatePresence>
         {modal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setModal(null)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => { setModal(null); document.body.style.overflow = ''; }}>
             <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }} className="bg-white dark:bg-[#111111] rounded-3xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between p-6 pb-4 shrink-0">
                 <div>
                   <h3 className="font-extrabold text-gray-800 dark:text-white text-lg">{modal.mode === 'dispatch' ? 'Dispatch Order' : 'Deliver & Collect'}</h3>
                   <p className="text-sm text-gray-400">{modal.retailer.name} • {modal.retailer.phone}</p>
                 </div>
-                <button onClick={() => setModal(null)} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400"><X size={14} /></button>
+                <button onClick={() => { setModal(null); document.body.style.overflow = ''; }} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400"><X size={14} /></button>
               </div>
 
               <div className="px-6 pb-6 flex flex-col flex-1 min-h-0">
@@ -1003,7 +1006,7 @@ export default function DailyLedger() {
       {/* Receipt Popup */}
       <AnimatePresence>
         {lastReceipt && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setLastReceipt(null)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => { setLastReceipt(null); document.body.style.overflow = ''; }}>
             <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }} className="bg-white dark:bg-[#111111] rounded-3xl p-6 w-full max-w-xs shadow-2xl text-center" onClick={e => e.stopPropagation()}>
               <div className="w-12 h-12 bg-mint-50 dark:bg-mint-900/30 rounded-full flex items-center justify-center mx-auto mb-3"><Check size={22} className="text-mint-600" /></div>
               <h3 className="font-extrabold text-gray-800 dark:text-white text-lg">Payment Collected!</h3>
@@ -1011,7 +1014,7 @@ export default function DailyLedger() {
               <p className="text-sm text-gray-500 mt-1">from {lastReceipt.name}</p>
               <p className="text-xs text-gray-400 mt-1">Balance: Rs. {lastReceipt.balanceAfter.toLocaleString('en-IN')}</p>
               <div className="flex gap-2 mt-5">
-                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLastReceipt(null)} className="flex-1 py-2.5 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-[#1a1a1a]">Close</motion.button>
+                <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setLastReceipt(null); document.body.style.overflow = ''; }} className="flex-1 py-2.5 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-[#1a1a1a]">Close</motion.button>
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => {
                   const r = lastReceipt;
                   const receiptPdf = new jsPDF({ unit: 'mm', format: [80, 150], orientation: 'portrait' });

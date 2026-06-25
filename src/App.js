@@ -45,6 +45,7 @@ const CompanyOrder = lazy(() => import('./pages/admin/CompanyOrder'));
 const SupportTickets = lazy(() => import('./pages/admin/SupportTickets'));
 const AdminSessions = lazy(() => import('./pages/admin/Sessions'));
 const AdminAnnouncements = lazy(() => import('./pages/admin/Announcements'));
+const AdminPlaceOrder = lazy(() => import('./pages/admin/PlaceOrder'));
 const DevPanel = lazy(() => import('./pages/admin/DevPanel'));
 const ErrorLogs = lazy(() => import('./pages/dev/ErrorLogs'));
 const UserSessions = lazy(() => import('./pages/dev/UserSessions'));
@@ -377,6 +378,7 @@ function AppContent() {
           { path: 'support', element: <SupportTickets /> },
           { path: 'sessions', element: <AdminSessions /> },
           { path: 'announcements', element: <AdminAnnouncements /> },
+          { path: 'place-order', element: <AdminPlaceOrder /> },
           ] : [],
       },
       {
