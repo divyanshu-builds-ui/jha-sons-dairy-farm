@@ -38,6 +38,8 @@ export default function DailyLedger() {
   const [sPage, setSPage] = useState(0);
   const [bulkDispatching, setBulkDispatching] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkItems, setBulkItems] = useState([]);
   const PAGE_SIZE = 15;
 
   const fallbackCopy = (text) => {
@@ -249,29 +251,53 @@ export default function DailyLedger() {
       return oData && (oData.status === 'Pending' || oData.status === 'Confirmed');
     });
     if (pendingOrders.length === 0) return;
-    const ok = await confirm({ title: 'Bulk Dispatch', message: `Dispatch all ${pendingOrders.length} pending orders at once? Quantities will remain as ordered (no edits).`, confirmText: `Dispatch ${pendingOrders.length}`, type: 'warning' });
+
+    // Build bulk items for review
+    const items = pendingOrders.map(ret => {
+      const oData = orderMap[ret.phone];
+      const orderItems = Object.entries(oData.items).map(([name, qty]) => ({ name, ordered: qty, actual: qty, unitPrice: priceMap[name] || 0 }));
+      return { retailer: ret, docIds: oData.docIds, items: orderItems, edited: false };
+    });
+    setBulkItems(items);
+    setShowBulkModal(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const updateBulkQty = (retailerIdx, itemIdx, val) => {
+    const num = parseFloat(val) || 0;
+    if (num < 0) return;
+    setBulkItems(prev => {
+      const updated = [...prev];
+      updated[retailerIdx] = { ...updated[retailerIdx], items: [...updated[retailerIdx].items], edited: true };
+      updated[retailerIdx].items[itemIdx] = { ...updated[retailerIdx].items[itemIdx], actual: num };
+      return updated;
+    });
+  };
+
+  const confirmBulkDispatch = async () => {
+    const ok = await confirm({ title: 'Dispatch All', message: `Dispatch ${bulkItems.length} orders? ${bulkItems.filter(b => b.edited).length} edited.`, confirmText: `Dispatch ${bulkItems.length}`, type: 'warning' });
     if (!ok) return;
     setBulkDispatching(true);
-    setBulkProgress({ done: 0, total: pendingOrders.length });
+    setBulkProgress({ done: 0, total: bulkItems.length });
     let count = 0;
-    for (const ret of pendingOrders) {
-      const oData = orderMap[ret.phone];
+    for (const bulk of bulkItems) {
       try {
-        const items = Object.entries(oData.items).map(([name, qty]) => ({ name, ordered: qty, actual: qty, unitPrice: priceMap[name] || 0 }));
-        const actualTotal = items.reduce((s, i) => s + i.actual * i.unitPrice, 0);
-        for (const docId of oData.docIds) {
+        const actualTotal = bulk.items.reduce((s, i) => s + i.actual * i.unitPrice, 0);
+        for (const docId of bulk.docIds) {
           await updateDoc(doc(db, 'orders', docId), {
             status: 'Dispatched', dispatchedAt: new Date().toISOString(),
-            actualItems: items, actualTotal,
+            actualItems: bulk.items, actualTotal,
           });
           const hSnap = await getDocs(query(collection(db, 'order_history'), where('orderId', '==', docId)));
           if (!hSnap.empty) await updateDoc(doc(db, 'order_history', hSnap.docs[0].id), { status: 'Dispatched', dispatchedAt: new Date().toISOString() });
         }
       } catch (err) {}
       count++;
-      setBulkProgress({ done: count, total: pendingOrders.length });
+      setBulkProgress({ done: count, total: bulkItems.length });
     }
     setBulkDispatching(false);
+    setShowBulkModal(false);
+    document.body.style.overflow = '';
     setToast(`${count} orders dispatched!`);
     setTimeout(() => setToast(''), 3000);
     fetchData();
@@ -898,6 +924,64 @@ export default function DailyLedger() {
           })()}
         </div>
       )}
+      {/* Bulk Dispatch Review Modal */}
+      <AnimatePresence>
+        {showBulkModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => { if (!bulkDispatching) { setShowBulkModal(false); document.body.style.overflow = ''; } }}>
+            <motion.div initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }} className="bg-white dark:bg-[#111111] rounded-3xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-5 pb-3 border-b border-gray-100 dark:border-[#222222] shrink-0">
+                <div>
+                  <h3 className="font-extrabold text-gray-800 dark:text-white text-lg">Review & Dispatch All</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">{bulkItems.length} orders | {bulkItems.filter(b => b.edited).length} edited</p>
+                </div>
+                {!bulkDispatching && <button onClick={() => { setShowBulkModal(false); document.body.style.overflow = ''; }} className="w-8 h-8 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400"><X size={14} /></button>}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {bulkItems.map((bulk, ri) => (
+                  <div key={bulk.retailer.phone} className={`rounded-xl border ${bulk.edited ? 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-900/5' : 'border-gray-100 dark:border-[#222222] bg-white dark:bg-[#111111]'} overflow-hidden`}>
+                    <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-[#1a1a1a]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-gray-400 w-5">{ri + 1}</span>
+                        <p className="text-sm font-bold text-gray-800 dark:text-white truncate">{bulk.retailer.name}</p>
+                      </div>
+                      {bulk.edited && <span className="text-[9px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded">Edited</span>}
+                    </div>
+                    <div className="px-3 py-2 space-y-1">
+                      {bulk.items.map((item, ii) => (
+                        <div key={ii} className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-gray-600 dark:text-gray-300 flex-1 truncate">{item.name}</span>
+                          <input type="number" min="0" value={item.actual}
+                            onChange={e => updateBulkQty(ri, ii, e.target.value)}
+                            onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                            className={`w-14 h-7 text-center text-xs font-bold rounded-lg border outline-none ${item.actual !== item.ordered ? 'border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-amber-700 dark:text-amber-300' : 'border-gray-200 dark:border-[#333333] dark:bg-[#1a1a1a] dark:text-white'}`} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="shrink-0 p-4 pt-3 border-t border-gray-100 dark:border-[#222222]">
+                {bulkDispatching ? (
+                  <div className="text-center">
+                    <div className="w-full h-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-full overflow-hidden mb-2">
+                      <div className="h-full bg-mint-500 rounded-full transition-all" style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }} />
+                    </div>
+                    <p className="text-xs font-bold text-gray-500">{bulkProgress.done}/{bulkProgress.total} dispatched</p>
+                  </div>
+                ) : (
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={confirmBulkDispatch}
+                    className="w-full bg-mint-600 text-white font-bold py-3.5 rounded-xl shadow-md text-sm">
+                    Confirm & Dispatch All ({bulkItems.length})
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Dispatch / Deliver Modal */}
       <AnimatePresence>
         {modal && (
