@@ -447,6 +447,28 @@ export default function DailyLedger() {
       y += rowH;
     });
 
+    // TOTAL ROW
+    if (y + rowH > h - 8) { pdf.addPage(); pageNum++; y = m; pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(130, 130, 130); pdf.text(`Pg ${pageNum}`, w - m, y + 3, { align: 'right' }); pdf.setTextColor(0, 0, 0); y += 4; drawHeader(); }
+    pdf.setDrawColor(50, 50, 50); pdf.setLineWidth(0.4); pdf.line(m, y, m + siW + retW + ALL_FIXED_KEYS.length * qtyW + totalW + paidW + signW, y);
+    y += 1;
+    pdf.setDrawColor(180, 180, 180); pdf.setLineWidth(0.1); let rx = m;
+    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, siW, rowH, 'FD'); rx += siW;
+    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, retW, rowH, 'FD');
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(0, 0, 0);
+    pdf.text('TOTAL', rx + 2, y + 6.5); rx += retW;
+    ALL_FIXED_KEYS.forEach(key => {
+      pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, qtyW, rowH, 'FD');
+      const colTotal = retailers.reduce((s, ret) => s + (orderMap[ret.phone]?.items[key] || 0), 0);
+      if (colTotal > 0) { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(colTotal >= 1000 ? 8 : colTotal >= 100 ? 10 : qtyFontSize); pdf.text(`${colTotal}`, rx + qtyW / 2, y + 7, { align: 'center' }); }
+      rx += qtyW;
+    });
+    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, totalW, rowH, 'FD');
+    rx += totalW;
+    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, paidW, rowH, 'FD');
+    rx += paidW;
+    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, signW, rowH, 'FD');
+    y += rowH;
+
     for (let b = 0; b < 5; b++) {
       if (y + rowH > h - 8) { pdf.addPage(); pageNum++; y = m; pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(130, 130, 130); pdf.text(`Pg ${pageNum}`, w - m, y + 3, { align: 'right' }); pdf.setTextColor(0, 0, 0); y += 4; drawHeader(); }
       pdf.setDrawColor(180, 180, 180); pdf.setLineWidth(0.1); let rx = m;
@@ -556,6 +578,28 @@ export default function DailyLedger() {
       pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(15, 23, 42);
       pdf.text(`Total: Rs.${retailerTotal.toFixed(0)}`, w - m - 3, y, { align: 'right' });
       y += 8;
+    });
+
+    // Product-wise Total
+    if (y + 20 > h - 15) { pdf.addPage(); y = m; }
+    y += 4;
+    pdf.setFillColor(240, 240, 240); pdf.rect(m, y, w - m * 2, 8, 'F');
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(15, 23, 42);
+    pdf.text('PRODUCT TOTALS', m + 3, y + 5.5);
+    y += 10;
+    ALL_SEASONAL_KEYS.forEach(key => {
+      const total = retailers.reduce((s, ret) => s + (orderMap[ret.phone]?.items[key] || 0), 0);
+      if (total > 0) {
+        if (y + 5 > h - 15) { pdf.addPage(); y = m; }
+        const product = products.find(p => p.name === key);
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(15, 23, 42);
+        drawText(pdf, product?.label || key, m + 5, y + 3, { size: 9 });
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(15, 23, 42);
+        pdf.text(`${total}`, m + 90, y + 3);
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
+        pdf.text(`Rs.${(total * (priceMap[key] || 0)).toFixed(0)}`, w - m - 3, y + 3, { align: 'right' });
+        y += 5;
+      }
     });
 
     // Grand Total
