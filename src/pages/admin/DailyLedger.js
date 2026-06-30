@@ -943,7 +943,10 @@ export default function DailyLedger() {
                     <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-[#1a1a1a]">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-gray-400 w-5">{ri + 1}</span>
-                        <p className="text-sm font-bold text-gray-800 dark:text-white truncate">{bulk.retailer.name}</p>
+                        <div>
+                          <p className="text-sm font-bold text-gray-800 dark:text-white truncate">{bulk.retailer.name}</p>
+                          <p className="text-[10px] text-gray-400">{bulk.retailer.area} | {bulk.retailer.phone.slice(-4)}</p>
+                        </div>
                       </div>
                       {bulk.edited && <span className="text-[9px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded">Edited</span>}
                     </div>
