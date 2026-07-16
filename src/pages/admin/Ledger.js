@@ -45,6 +45,13 @@ export default function Ledger() {
 
   const retailerName = retailers.find(r => r.phone === selectedRetailer)?.name || '';
 
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    const open = showPayModal || showBalModal || !!editEntry;
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [showPayModal, showBalModal, editEntry]);
+
   const parseToGrams = (p) => {
     const lbl = (p.label || p.name || '').toLowerCase();
     const num = parseFloat(lbl.replace(/[^0-9.]/g, '')) || 0;
