@@ -176,7 +176,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarExpanded ? 'lg:ml-[260px]' : 'lg:ml-[68px]'} flex flex-col min-h-screen`}>
+      <div className={`flex-1 min-w-0 transition-all duration-300 ${sidebarExpanded ? 'lg:ml-[260px]' : 'lg:ml-[68px]'} flex flex-col min-h-screen`}>
         {/* Mobile Header */}
         <header className="sticky top-0 z-30 lg:hidden bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a]">
           <div className="flex items-center justify-between px-4 py-3">

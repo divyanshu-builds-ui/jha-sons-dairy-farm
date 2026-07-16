@@ -333,11 +333,11 @@ export default function Ledger() {
   const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
 
   return (
-    <div className="space-y-3" style={{overflow: 'hidden'}}>
+    <div className="space-y-3">
       <AnimatePresence>{toast && (<motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-[4.5rem] left-4 right-4 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:w-auto z-[100] flex items-center justify-center gap-2 px-4 py-3 rounded-2xl shadow-xl bg-mint-50 border border-mint-200 text-mint-800 backdrop-blur-sm"><Check size={14} strokeWidth={3} /><span className="text-sm font-bold">{toast}</span></motion.div>)}</AnimatePresence>
 
       {/* Area Tabs */}
-      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+      <div className="overflow-x-auto pb-1">
         <div className="flex gap-1.5 w-max">
           {['All', ...areas].map(a => { const cnt = dueList.filter(d => a === 'All' ? true : d.area === a).length; return <button key={a} onClick={() => { setSelectedArea(a); setSelectedRetailer(''); }} className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap ${selectedArea === a ? 'bg-royal-700 text-white shadow-sm' : 'bg-gray-100 dark:bg-[#111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222]'}`}>{a} {cnt > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">{cnt}</span>}</button>; })}
         </div>
@@ -351,7 +351,7 @@ export default function Ledger() {
       </div>
 
       {/* Retailer Chips */}
-      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+      <div className="pb-1">
         <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
           {filteredRetailers.map(r => { const due = dueList.find(d => d.phone === r.phone); return (
             <button key={r.phone} onClick={() => { setSelectedRetailer(r.phone); setPage(1); }} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap ${r.phone === selectedRetailer ? 'bg-royal-600 text-white shadow-md ring-2 ring-royal-300' : 'bg-white dark:bg-[#111] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#222]'}`}>
@@ -398,11 +398,11 @@ export default function Ledger() {
         </div>
 
         {/* Stats + Per Page */}
-        <div className="flex items-center gap-1.5 text-[10px]">
-          <span className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-md px-2 py-1 font-bold text-gray-600 dark:text-gray-300">{rowData.length}d</span>
-          <span className="bg-amber-50 border border-amber-100 rounded-md px-2 py-1 font-bold text-amber-700">Op:{formatPrice(openingBalance)}</span>
-          <span className="bg-red-50 border border-red-100 rounded-md px-2 py-1 font-bold text-red-700">Due:{formatPrice(closingBal)}</span>
-          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="ml-auto text-[10px] font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-md px-1.5 py-1 outline-none">
+        <div className="flex flex-wrap items-center gap-1 text-[10px]">
+          <span className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-md px-1.5 py-1 font-bold text-gray-600 dark:text-gray-300">{rowData.length}d</span>
+          <span className="bg-amber-50 border border-amber-100 rounded-md px-1.5 py-1 font-bold text-amber-700">Op:{formatPrice(openingBalance)}</span>
+          <span className="bg-red-50 border border-red-100 rounded-md px-1.5 py-1 font-bold text-red-700">Due:{formatPrice(closingBal)}</span>
+          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="ml-auto text-[10px] font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-md px-1 py-1 outline-none">
             {[10, 25, 31, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
@@ -418,9 +418,9 @@ export default function Ledger() {
         </div>
 
         {/* View Toggle */}
-        <div className="flex items-center gap-2">
-          <button onClick={() => setViewMode('summary')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'summary' ? 'bg-royal-700 text-white shadow' : 'bg-white dark:bg-[#111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222]'}`}>Summary</button>
-          <button onClick={() => setViewMode('entries')} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'entries' ? 'bg-royal-700 text-white shadow' : 'bg-white dark:bg-[#111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222]'}`}>All Entries</button>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setViewMode('summary')} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${viewMode === 'summary' ? 'bg-royal-700 text-white shadow' : 'bg-white dark:bg-[#111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222]'}`}>Summary</button>
+          <button onClick={() => setViewMode('entries')} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${viewMode === 'entries' ? 'bg-royal-700 text-white shadow' : 'bg-white dark:bg-[#111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222]'}`}>All Entries</button>
         </div>
 
         {viewMode === 'summary' ? (<>
