@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, RefreshCw, Printer, X, Check, Download, Undo2, ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
+import { Calendar, RefreshCw, Printer, X, Check, Download, Undo2, ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import { db, collection, getDocs, setDoc, addDoc, doc, getDoc, updateDoc, query, where } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
@@ -40,6 +40,8 @@ export default function DailyLedger() {
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkItems, setBulkItems] = useState([]);
+  const [showExtraPicker, setShowExtraPicker] = useState(false);
+  const [extraSearch, setExtraSearch] = useState('');
   const PAGE_SIZE = 15;
 
   const fallbackCopy = (text) => {
@@ -305,7 +307,7 @@ export default function DailyLedger() {
 
   const handleDispatch = async () => {
     if (!modal || delivering) return;
-    const hasEdits = deliverForm.items.some(i => i.actual !== i.ordered);
+    const hasEdits = deliverForm.items.some(i => i.actual !== i.ordered || i.extra);
     if (hasEdits && !showDispatchConfirm) { setShowDispatchConfirm(true); return; }
     setShowDispatchConfirm(false);
     setDelivering(true);
@@ -319,7 +321,7 @@ export default function DailyLedger() {
         const hSnap1 = await getDocs(query(collection(db, 'order_history'), where('orderId', '==', docId)));
         if (!hSnap1.empty) await updateDoc(doc(db, 'order_history', hSnap1.docs[0].id), { status: 'Dispatched', dispatchedAt: new Date().toISOString() });
       }
-      setModal(null); setShowDispatchConfirm(false);
+      setModal(null); setShowDispatchConfirm(false); setShowExtraPicker(false);
       document.body.style.overflow = '';
       setToast(`Dispatched — ${modal.retailer.name}`);
       setTimeout(() => setToast(''), 2500);
@@ -1027,10 +1029,10 @@ export default function DailyLedger() {
                       );
                     })}
                     {/* Seasonal Items */}
-                    {deliverForm.items.filter(i => !ALL_FIXED_KEYS.includes(i.name)).length > 0 && (
+                    {deliverForm.items.filter(i => !ALL_FIXED_KEYS.includes(i.name) && !i.extra).length > 0 && (
                       <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider pt-2">Seasonal</p>
                     )}
-                    {deliverForm.items.filter(i => !ALL_FIXED_KEYS.includes(i.name)).map((item, idx) => {
+                    {deliverForm.items.filter(i => !ALL_FIXED_KEYS.includes(i.name) && !i.extra).map((item, idx) => {
                       const realIdx = deliverForm.items.indexOf(item);
                       return (
                         <div key={realIdx} className="grid grid-cols-12 items-center bg-amber-50 rounded-xl px-3 py-2">
@@ -1043,6 +1045,55 @@ export default function DailyLedger() {
                         </div>
                       );
                     })}
+                    {/* Extra Items (not in original order) */}
+                    {deliverForm.items.filter(i => i.extra).length > 0 && (
+                      <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider pt-2">Extra (On-spot)</p>
+                    )}
+                    {deliverForm.items.filter(i => i.extra).map((item) => {
+                      const realIdx = deliverForm.items.indexOf(item);
+                      return (
+                        <div key={realIdx} className="grid grid-cols-12 items-center bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2 border border-green-200 dark:border-green-800">
+                          <span className="col-span-4 text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">{item.name}</span>
+                          <span className="col-span-2 text-center text-[10px] text-green-600 font-bold">EXTRA</span>
+                          <div className="col-span-3 flex justify-center">
+                            <input type="number" min="1" value={item.actual} onChange={e => updateActual(realIdx, e.target.value)} onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }} className="w-14 text-center text-sm font-bold border border-green-200 dark:border-green-700 dark:bg-[#1a1a1a] dark:text-white rounded-lg py-1 focus:border-green-400 focus:outline-none" />
+                          </div>
+                          <span className="col-span-2 text-right text-sm font-bold text-gray-800 dark:text-gray-200">₹{(item.actual * item.unitPrice).toFixed(0)}</span>
+                          <button onClick={() => setDeliverForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== realIdx) }))} className="col-span-1 flex justify-end"><Trash2 size={13} className="text-red-400" /></button>
+                        </div>
+                      );
+                    })}
+                    {/* Add Extra Item Button & Picker */}
+                    {!showExtraPicker ? (
+                      <button onClick={() => { setShowExtraPicker(true); setExtraSearch(''); }} className="flex items-center gap-1.5 px-3 py-2 mt-2 text-xs font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-dashed border-green-300 dark:border-green-700 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors w-full justify-center">
+                        <Plus size={13} /> Add Extra Item
+                      </button>
+                    ) : (
+                      <div className="mt-2 border border-green-200 dark:border-green-800 rounded-xl overflow-hidden bg-white dark:bg-[#111111]">
+                        <div className="flex items-center gap-2 px-3 py-2 border-b border-green-100 dark:border-green-900">
+                          <input type="text" placeholder="Search product..." value={extraSearch} onChange={e => setExtraSearch(e.target.value)} autoFocus className="flex-1 text-sm outline-none bg-transparent dark:text-white" />
+                          <button onClick={() => setShowExtraPicker(false)} className="w-6 h-6 bg-gray-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center"><X size={10} className="text-gray-500" /></button>
+                        </div>
+                        <div className="max-h-[150px] overflow-y-auto">
+                          {products.filter(p => {
+                            const alreadyIn = deliverForm.items.some(i => i.name === p.name);
+                            const matchSearch = !extraSearch || p.name.toLowerCase().includes(extraSearch.toLowerCase());
+                            return !alreadyIn && matchSearch;
+                          }).map(p => (
+                            <button key={p.id} onClick={() => {
+                              setDeliverForm(prev => ({ ...prev, items: [...prev.items, { name: p.name, ordered: 0, actual: 1, unitPrice: p.price || 0, extra: true }] }));
+                              setShowExtraPicker(false);
+                            }} className="w-full flex items-center justify-between px-3 py-2 hover:bg-green-50 dark:hover:bg-green-900/20 text-left border-b border-gray-50 dark:border-[#222222] last:border-0">
+                              <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{p.name}</span>
+                              <span className="text-[10px] text-gray-400">₹{p.price}/{p.unit}</span>
+                            </button>
+                          ))}
+                          {products.filter(p => !deliverForm.items.some(i => i.name === p.name) && (!extraSearch || p.name.toLowerCase().includes(extraSearch.toLowerCase()))).length === 0 && (
+                            <p className="text-xs text-gray-400 text-center py-3">No products available</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     </div>
                   </div>
                   <div className="flex justify-between items-center bg-royal-50 rounded-xl px-4 py-3 shrink-0">
@@ -1055,8 +1106,11 @@ export default function DailyLedger() {
                         <p className="text-sm font-bold text-amber-800">Quantity Changed!</p>
                         <p className="text-xs text-amber-600 mt-1">Some items have different actual qty than ordered.</p>
                         <div className="mt-3 space-y-1">
-                          {deliverForm.items.filter(i => i.actual !== i.ordered).map((i, idx) => (
+                          {deliverForm.items.filter(i => i.actual !== i.ordered && !i.extra).map((i, idx) => (
                             <p key={idx} className="text-xs text-gray-700"><span className="font-bold">{i.name}</span>: {i.ordered} → {i.actual}</p>
+                          ))}
+                          {deliverForm.items.filter(i => i.extra).map((i, idx) => (
+                            <p key={idx} className="text-xs text-green-700"><span className="font-bold">{i.name}</span>: +{i.actual} (extra)</p>
                           ))}
                         </div>
                       </div>
@@ -1072,11 +1126,21 @@ export default function DailyLedger() {
                       <span className="col-span-3 text-right">Amt</span>
                     </div>
                     <div className="overflow-y-auto max-h-[30vh] space-y-1">
-                    {deliverForm.items.map((item, idx) => (
+                    {deliverForm.items.filter(i => !i.extra).map((item, idx) => (
                       <div key={idx} className="grid grid-cols-12 items-center bg-gray-50 dark:bg-[#1a1a1a] rounded-xl px-3 py-2">
-                        <span className="col-span-6 text-sm font-semibold text-gray-700">{item.name}</span>
-                        <span className="col-span-3 text-center text-sm font-bold text-gray-800">{item.actual || item.qty}</span>
-                        <span className="col-span-3 text-right text-sm font-bold text-gray-800">₹{((item.actual || item.qty || 0) * (item.unitPrice || 0)).toFixed(2)}</span>
+                        <span className="col-span-6 text-sm font-semibold text-gray-700 dark:text-gray-200">{item.name}</span>
+                        <span className="col-span-3 text-center text-sm font-bold text-gray-800 dark:text-white">{item.actual || item.qty}</span>
+                        <span className="col-span-3 text-right text-sm font-bold text-gray-800 dark:text-white">₹{((item.actual || item.qty || 0) * (item.unitPrice || 0)).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    {deliverForm.items.filter(i => i.extra).length > 0 && (
+                      <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider pt-2">Extra (On-spot)</p>
+                    )}
+                    {deliverForm.items.filter(i => i.extra).map((item, idx) => (
+                      <div key={idx} className="grid grid-cols-12 items-center bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2 border border-green-200 dark:border-green-800">
+                        <span className="col-span-6 text-sm font-semibold text-gray-700 dark:text-gray-200">{item.name}</span>
+                        <span className="col-span-3 text-center text-sm font-bold text-green-700 dark:text-green-300">{item.actual || item.qty}</span>
+                        <span className="col-span-3 text-right text-sm font-bold text-gray-800 dark:text-white">₹{((item.actual || item.qty || 0) * (item.unitPrice || 0)).toFixed(2)}</span>
                       </div>
                     ))}
                     </div>

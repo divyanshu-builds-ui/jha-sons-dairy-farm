@@ -98,7 +98,7 @@ lucy-garden/
 │   │   │   ├── Checkout.js     ← Order review + confirm
 │   │   │   ├── Guide.js        ← User Guide (step-by-step how to use app)
 │   │   │   ├── Home.js         ← Retailer dashboard/home
-│   │   │   ├── MyLedger.js     ← Payment history / dues
+│   │   │   ├── MyLedger.js     ← Product-wise daily breakdown (read-only)
 │   │   │   ├── OrderHistory.js ← Past orders list
 │   │   │   ├── PlaceOrder.js   ← Product list + quantity selection
 │   │   │   ├── PriceList.js    ← View all product prices + download PDF rate card
@@ -116,7 +116,7 @@ lucy-garden/
 │   │   │   ├── Dashboard.js    ← Admin home (stats, overview, FAB quick actions)
 │   │   │   ├── DevPanel.js     ← App health monitor (dev only)
 │   │   │   ├── Inventory.js    ← Products list (add/edit/delete/price)
-│   │   │   ├── Ledger.js       ← Retailer-wise payment ledger + entries edit/delete
+│   │   │   ├── Ledger.js       ← Retailer summary + product-wise breakdown + entries + collect/set balance
 │   │   │   ├── OrderDetail.js  ← Single order detail + timeline + edit items
 │   │   │   ├── PlaceOrder.js   ← Place/edit order on behalf of retailer
 │   │   │   ├── Retailers.js    ← Manage retailers + performance score
@@ -204,7 +204,7 @@ lucy-garden/
 | `Checkout.js` | Review order, see total + previous dues, confirm button. Duplicate order warning. **Min order amount enforced. Modify toggle respected.** |
 | `TrackOrder.js` | Today's order status (Pending → Dispatched → Delivered). **Dispatch Slip PDF (blue)** on dispatch, **Final Invoice PDF (green)** on delivery. Cancel order before dispatch. |
 | `Home.js` | Dashboard with quick stats and shortcuts. |
-| `MyLedger.js` | Payment history — what's due, what's paid. |
+| `MyLedger.js` | Product-wise daily breakdown — same DailyLedger-style responsive table with sticky Date column, product quantities, TOTAL/PAID/DUE columns. Read-only for retailers. |
 | `PriceList.js` | **View all product prices** grouped by daily/seasonal. Search + **Download PDF rate card** with formatted table. |
 | `Support.js` | Raise a ticket, view ticket status, reply to admin. WhatsApp/Call buttons. |
 | `Settings.js` | Dark mode toggle, change PIN, font size, **Install App button**. |
@@ -224,7 +224,7 @@ lucy-garden/
 | `DailyLedger.js` | Main daily work page. All retailers + orders in table. Dispatch/Deliver. Bulk Dispatch. Past date actions enabled. PDF export. |
 | `Retailers.js` | Add/Edit/Delete retailers. Block/Unblock. Performance Score (frequency, reliability, payment). Area management. |
 | `Inventory.js` | Add/Edit/Delete products. Set prices. Bulk price update. |
-| `Ledger.js` | Retailer ledger — Summary view (daily opening/closing) + All Entries view (edit/delete individual entries). Collect payment with date picker. Set opening balance. |
+| `Ledger.js` | Retailer ledger — **Summary view** (product-wise daily breakdown table like DailySheet, with Date rows instead of Retailer rows) + **All Entries view** (edit/delete individual entries). Collect payment with date picker. Set opening balance. Daily PDF + Seasonal PDF + Excel export. DailyLedger-style responsive tables with sticky columns. |
 | `OrderDetail.js` | Single order — timeline (Placed→Confirmed→Dispatched→Delivered), edit items, retailer info, due warning. |
 | `CompanyOrder.js` | Company-level order summary for the day. |
 | `Announcements.js` | Send banners to users. |
@@ -276,7 +276,7 @@ lucy-garden/
 | File | What it does |
 |------|-------------|
 | `errorLogger.js` | Catches all app crashes automatically. Stores in Firebase. Matches errors with solutions. |
-| `config.js` | **🎯 Central config** — app version (`2.8.0`), name, tagline, developer info, phone. Single source of truth. |
+| `config.js` | **🎯 Central config** — app version (`2.10.0`), name, tagline, developer info, phone. Single source of truth. |
 | `autoCleanup.js` | **Auto-cleanup on app load** — runs once/day, deletes old errors (7d), old orders/audit (1yr). Respects `autoCleanup` setting. Logs to audit_log. |
 | `usageTracker.js` | **Tracks Firestore usage** (reads/writes/deletes) locally, syncs to Firebase every 5 min + on page unload. |
 | `price.js` | Formats numbers as ₹ prices (e.g., ₹1,250.00) |
@@ -476,13 +476,30 @@ git push
 ---
 
 *Built with ♥ by Divyanshu Gupta*
-*Last updated: June 2026 | Version 2.8.0*
+*Last updated: July 2026 | Version 2.10.0*
 
 ---
 
 ## 11. 🆕 Version History
 
-### v2.8.0 (Latest)
+### v2.10.0 (Latest)
+
+| Feature | Description |
+|---------|-------------|
+| **Ledger Redesign** | Complete rewrite — now shows product-wise daily breakdown (DailySheet-style table) with Date rows, product quantity columns, TOTAL/PAID/DUE. Replaces old simple ledger. |
+| **Summary Page Removed** | Summary merged into Ledger. Single page handles everything — no more separate Summary route. |
+| **DailyLedger-style PDF** | Ledger PDF now matches DailySheet design — row height 11mm, bigger fonts, proper header with product groups, PAID/DUE columns. Hindi name support via canvas rendering. |
+| **Seasonal PDF** | Separate seasonal product PDF with same DailyLedger-style design. |
+| **Excel Export Improved** | Proper CSV with BOM (Hindi support), quoted values, group headers, retailer info rows, empty cells instead of 0. |
+| **Summary/All Entries Toggle** | Ledger page has two views — Summary (product tables) and All Entries (edit/delete individual ledger entries). |
+| **Date Picker in Modals** | Collect Payment and Set Balance modals now have date picker for backdated entries. |
+| **Collect/Set Bal Separated** | Payment buttons moved to right side, separated from PDF/Excel buttons for cleaner UI. |
+| **Retailer MyLedger Redesign** | Retailer-side ledger now shows same product-wise breakdown table (read-only, no edit/delete). |
+| **Responsive Tables** | All tables use DailyLedger-style sticky columns, shadows, hover effects, proper font sizes. |
+| **PDF Black Box Fix** | Fixed jsPDF fillColor/drawColor state leaking between cells causing black boxes in PAID/DUE columns. |
+| **Hindi PDF Footer Fix** | Footer text with Hindi retailer names now renders correctly using canvas-based drawText helper. |
+
+### v2.8.0
 
 | Feature | Description |
 |---------|-------------|

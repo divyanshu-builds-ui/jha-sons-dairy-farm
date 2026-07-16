@@ -1,295 +1,142 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
-import { db, collection, getDocs, query, where } from '../../services/firebase';
+import { Calendar, Printer, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { db, collection, getDocs, doc, getDoc, query, where } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
-import { drawText } from '../../utils/pdfHelper';
+import { drawText, registerHindiFont } from '../../utils/pdfHelper';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 
 export default function MyLedger() {
-  const [allEntries, setAllEntries] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [perPage, setPerPage] = useState(25);
+  const [groupOrder, setGroupOrder] = useState([]);
+  const [groupCodes, setGroupCodes] = useState({});
+  const [ordersDayData, setOrdersDayData] = useState({});
+  const [openingBalance, setOpeningBalance] = useState(0);
+  const [perPage, setPerPage] = useState(31);
   const [page, setPage] = useState(1);
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date(); d.setDate(1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-  });
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [fromDate, setFromDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; });
+  const [toDate, setToDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; });
 
   const user = JSON.parse(localStorage.getItem('lg_user') || '{}');
+  const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
 
-  useEffect(() => { fetchLedger(); }, [fromDate, toDate]);
+  const parseToGrams = (p) => { const lbl = (p.label || p.name || '').toLowerCase(); const num = parseFloat(lbl.replace(/[^0-9.]/g, '')) || 0; if (/kg/.test(lbl)) return num * 1000; if (/ltr|lit|l$/.test(lbl)) return num * 1000; if (/ml/.test(lbl)) return num; if (/g$|gm/.test(lbl)) return num; if (/half|hf/.test(lbl)) return 500; if (/full|fl/.test(lbl)) return 1000; if (/qtr|quarter/.test(lbl)) return 250; return p.price || 0; };
 
-  const fetchLedger = async () => {
+  const allDates = useMemo(() => { const dates = []; const start = new Date(fromDate + 'T00:00:00'); const end = new Date(toDate + 'T00:00:00'); for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) dates.push(new Date(d)); return dates; }, [fromDate, toDate]);
+
+  useEffect(() => { fetchAll(); }, [fromDate, toDate]);
+
+  const fetchAll = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', user.phone)));
-      setAllEntries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const [prodSnap, groupDoc] = await Promise.all([getDocs(collection(db, 'products')), getDoc(doc(db, 'settings', 'productGroups'))]);
+      const prods = prodSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.active !== false);
+      setProducts(prods);
+      if (groupDoc.exists() && groupDoc.data().daily) { setGroupOrder(groupDoc.data().daily); setGroupCodes(groupDoc.data().codes || {}); }
+
+      // Opening balance
+      const ledgerSnap = await getDocs(query(collection(db, 'ledger'), where('retailerId', '==', user.phone)));
+      const start = new Date(fromDate + 'T00:00:00');
+      let bal = 0;
+      ledgerSnap.docs.forEach(d => { const e = d.data(); let parsed = null; const parts = (e.date || '').match(/(\d+)\s+(\w+)\s+(\d+)/); if (parts) parsed = new Date(`${parts[2]} ${parts[1]}, ${parts[3]}`); if (!parsed || isNaN(parsed.getTime())) parsed = new Date(e.date); if (parsed && !isNaN(parsed.getTime()) && parsed < start) { if (e.type === 'debit') bal += (e.amount || 0); else bal -= (e.amount || 0); } });
+      setOpeningBalance(bal);
+
+      // Orders
+      const ordSnap = await getDocs(query(collection(db, 'orders'), where('phone', '==', user.phone)));
+      const end = new Date(toDate + 'T00:00:00');
+      const dayMap = {};
+      ordSnap.docs.forEach(d => { const o = d.data(); if (o.status === 'Cancelled' || o.status === 'Returned') return; let orderDate = null; const parts = (o.date || '').match(/(\d+)\s+(\w+)\s+(\d+)/); if (parts) orderDate = new Date(`${parts[2]} ${parts[1]}, ${parts[3]}`); if (!orderDate || isNaN(orderDate.getTime())) orderDate = new Date(o.date); if (!orderDate || isNaN(orderDate.getTime())) return; if (orderDate < start || orderDate > end) return; const key = `${orderDate.getFullYear()}-${String(orderDate.getMonth()+1).padStart(2,'0')}-${String(orderDate.getDate()).padStart(2,'0')}`; if (!dayMap[key]) dayMap[key] = { items: {}, deposit: 0 }; (o.actualItems || o.items || []).forEach(item => { const qty = parseFloat(String(item.qty || item.actual || 0).replace(/[^0-9.]/g, '')) || 0; if (qty > 0 && item.name) dayMap[key].items[item.name] = (dayMap[key].items[item.name] || 0) + qty; }); if (o.paymentReceived > 0) dayMap[key].deposit = (dayMap[key].deposit || 0) + o.paymentReceived; });
+      ledgerSnap.docs.forEach(d => { const e = d.data(); if (e.type !== 'credit') return; let parsed = null; const parts = (e.date || '').match(/(\d+)\s+(\w+)\s+(\d+)/); if (parts) parsed = new Date(`${parts[2]} ${parts[1]}, ${parts[3]}`); if (!parsed || isNaN(parsed.getTime())) parsed = new Date(e.date); if (!parsed || isNaN(parsed.getTime())) return; if (parsed < start || parsed > end) return; const key = `${parsed.getFullYear()}-${String(parsed.getMonth()+1).padStart(2,'0')}-${String(parsed.getDate()).padStart(2,'0')}`; if (!dayMap[key]) dayMap[key] = { items: {}, deposit: 0 }; dayMap[key].deposit = (dayMap[key].deposit || 0) + (e.amount || 0); });
+      setOrdersDayData(dayMap);
     } catch (err) {}
     setLoading(false);
   };
 
-  // Opening balance
-  const openingBalance = (() => {
-    const from = new Date(fromDate + 'T00:00:00');
-    let bal = 0;
-    allEntries.forEach(e => {
-      if (new Date(e.createdAt) < from) {
-        if (e.type === 'debit') bal += (e.amount || 0);
-        else bal -= (e.amount || 0);
-      }
-    });
-    return bal;
-  })();
+  const priceMap = useMemo(() => { const m = {}; products.forEach(p => { m[p.name] = p.price || 0; }); return m; }, [products]);
+  const PRODUCT_GROUPS = useMemo(() => { const gm = {}; groupOrder.forEach(g => { gm[g] = []; }); products.filter(p => p.group && p.type === 'daily').sort((a, b) => parseToGrams(b) - parseToGrams(a)).forEach(p => { if (!gm[p.group]) gm[p.group] = []; gm[p.group].push({ key: p.name, label: p.label || p.name, price: p.price || 0 }); }); const r = []; groupOrder.forEach(g => { if (gm[g]?.length > 0) r.push({ group: g, items: gm[g] }); }); Object.keys(gm).forEach(g => { if (!groupOrder.includes(g) && gm[g]?.length > 0) r.push({ group: g, items: gm[g] }); }); return r; }, [products, groupOrder]);
+  const ALL_DAILY_KEYS = useMemo(() => PRODUCT_GROUPS.flatMap(g => g.items.map(i => i.key)), [PRODUCT_GROUPS]);
+  const ALL_SEASONAL_KEYS = useMemo(() => { const sm = []; products.filter(p => p.type === 'seasonal').forEach(p => sm.push(p.name)); return sm; }, [products]);
 
-  // Build daily rows
-  const dailyRows = (() => {
-    const from = new Date(fromDate + 'T00:00:00');
-    const to = new Date(toDate + 'T00:00:00');
-    const rows = [];
-    let prevClosing = openingBalance;
+  const rowData = useMemo(() => { const rows = []; let prev = openingBalance; allDates.forEach(date => { const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; const dayData = ordersDayData[key] || { items: {}, deposit: 0 }; let dailyAmt = 0, seasonalAmt = 0; Object.entries(dayData.items).forEach(([name, qty]) => { const amt = qty * (priceMap[name] || 0); if (ALL_SEASONAL_KEYS.includes(name)) seasonalAmt += amt; else dailyAmt += amt; }); const deposit = dayData.deposit || 0; const closing = prev + dailyAmt + seasonalAmt - deposit; rows.push({ date, dateStr: `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`, items: dayData.items, dailyAmt, seasonalAmt, deposit, closing }); prev = closing; }); return rows; }, [allDates, ordersDayData, openingBalance, priceMap, ALL_SEASONAL_KEYS]);
 
-    const totalDays = Math.round((to - from) / (1000 * 60 * 60 * 24)) + 1;
-    for (let i = 0; i < totalDays; i++) {
-      const current = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
-      const dateStr = `${String(current.getDate()).padStart(2, '0')}/${String(current.getMonth() + 1).padStart(2, '0')}/${current.getFullYear()}`;
-      const dateMatch = current.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      const dayEntries = allEntries.filter(e => e.date === dateMatch);
-
-      let productAmt = 0;
-      let seasonalAmt = 0;
-      let deposit = 0;
-      let openingBalAdj = 0;
-
-      dayEntries.forEach(e => {
-        if (e.type === 'debit') {
-          if (e.note?.toLowerCase().includes('opening balance')) openingBalAdj += (e.amount || 0);
-          else if (e.note?.toLowerCase().includes('seasonal')) seasonalAmt += (e.amount || 0);
-          else productAmt += (e.amount || 0);
-        } else {
-          deposit += (e.amount || 0);
-        }
-      });
-
-      const opening = prevClosing + openingBalAdj;
-      const closing = opening + productAmt + seasonalAmt - deposit;
-      rows.push({ dateStr, opening, productAmt, seasonalAmt, deposit, closing });
-      prevClosing = closing;
-    }
-    return rows;
-  })();
-
-  // Search
-  const filteredRows = dailyRows.filter(r => !search || r.dateStr.includes(search));
-
-  // Pagination
-  const totalPages = Math.ceil(filteredRows.length / perPage);
-  const paginatedRows = filteredRows.slice((page - 1) * perPage, page * perPage);
-  const showingFrom = filteredRows.length === 0 ? 0 : (page - 1) * perPage + 1;
-  const showingTo = Math.min(page * perPage, filteredRows.length);
-
-  // Print PDF
-  const printPDF = () => {
-    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
-    const w = pdf.internal.pageSize.getWidth();
-    const h = pdf.internal.pageSize.getHeight();
-    const m = 12;
-    let y = m;
-    const tableW = w - (m * 2);
-    const fromStr = new Date(fromDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    const toStr = new Date(toDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    const closingBal = dailyRows.length > 0 ? dailyRows[dailyRows.length - 1].closing : openingBalance;
-
-    // --- Header ---
-    pdf.setFillColor(15, 23, 42); pdf.rect(0, 0, w, 22, 'F');
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(255, 255, 255);
-    pdf.text('LUCY GARDEN', m, 10);
-    pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
-    pdf.text('Fresh Dairy Supply', m, 15);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
-    pdf.text('LEDGER STATEMENT', w - m, 10, { align: 'right' });
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
-    pdf.text(`Generated: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`, w - m, 15, { align: 'right' });
-    y = 28;
-
-    // --- Retailer Details Box ---
-    pdf.setFillColor(248, 250, 252); pdf.setDrawColor(226, 232, 240);
-    pdf.roundedRect(m, y, tableW / 2 - 3, 22, 2, 2, 'FD');
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139);
-    pdf.text('RETAILER DETAILS', m + 4, y + 5);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(15, 23, 42);
-    drawText(pdf, user.name || '', m + 4, y + 11, { bold: true, size: 10, color: [15, 23, 42] });
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(71, 85, 105);
-    pdf.text(`Phone: ${user.phone || ''}  |  Shop: ${user.shop || '-'}  |  Area: ${user.area || '-'}`, m + 4, y + 17);
-
-    // --- Period & Balance Box ---
-    const boxX = m + tableW / 2 + 3;
-    pdf.setFillColor(248, 250, 252); pdf.setDrawColor(226, 232, 240);
-    pdf.roundedRect(boxX, y, tableW / 2 - 3, 22, 2, 2, 'FD');
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139);
-    pdf.text('STATEMENT PERIOD', boxX + 4, y + 5);
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(15, 23, 42);
-    pdf.text(`${fromStr}  to  ${toStr}`, boxX + 4, y + 11);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139);
-    pdf.text('CLOSING BALANCE', boxX + 4, y + 16);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(220, 38, 38);
-    pdf.text(`Rs. ${closingBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, boxX + 4, y + 21);
-
-    y += 28;
-
-    // --- Table Header ---
-    const rowH = 7;
-    const cols = [14, 32, 38, 34, 34, 38, 34, 38];
-    pdf.setFillColor(15, 23, 42);
-    pdf.roundedRect(m, y, tableW, rowH + 1, 1, 1, 'F');
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); pdf.setTextColor(255, 255, 255);
-    let cx = m;
-    const headers = ['#', 'Date', 'Opening (Rs)', 'Daily (Rs)', 'Seasonal (Rs)', 'Total (Rs)', 'Deposit (Rs)', 'Closing (Rs)'];
-    headers.forEach((hdr, i) => { pdf.text(hdr, cx + cols[i] / 2, y + 5, { align: 'center' }); cx += cols[i]; });
-    y += rowH + 2;
-
-    // --- Table Rows ---
-    dailyRows.forEach((row, i) => {
-      if (y + rowH > h - 18) {
-        pdf.setFontSize(7); pdf.setTextColor(150, 150, 150); pdf.setFont('helvetica', 'normal');
-        pdf.text(`Lucy Garden Ledger - ${user.name || ''}`, m, h - 6);
-        pdf.text(`Page ${pdf.getNumberOfPages()}`, w - m, h - 6, { align: 'right' });
-        pdf.addPage(); y = m + 5;
-      }
-      if (i % 2 === 0) { pdf.setFillColor(248, 250, 252); pdf.rect(m, y - 1, tableW, rowH, 'F'); }
-      pdf.setDrawColor(230, 230, 230); pdf.setLineWidth(0.1); pdf.line(m, y + rowH - 1.5, m + tableW, y + rowH - 1.5);
-      const hasActivity = row.productAmt > 0 || row.seasonalAmt > 0 || row.deposit > 0;
-      pdf.setFont('helvetica', hasActivity ? 'bold' : 'normal'); pdf.setFontSize(7.5); pdf.setTextColor(30, 41, 59);
-      cx = m;
-      const vals = [
-        `${i + 1}`, row.dateStr,
-        row.opening.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-        row.productAmt > 0 ? row.productAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-        row.seasonalAmt > 0 ? row.seasonalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-        (row.productAmt + row.seasonalAmt) > 0 ? (row.productAmt + row.seasonalAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-        row.deposit > 0 ? row.deposit.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-',
-        row.closing.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-      ];
-      vals.forEach((v, vi) => {
-        if (vi === 7) { pdf.setFont('helvetica', 'bold'); pdf.setTextColor(220, 38, 38); }
-        else if (vi === 5 && (row.productAmt + row.seasonalAmt) > 0) { pdf.setFont('helvetica', 'bold'); pdf.setTextColor(30, 41, 139); }
-        else if (vi === 6 && row.deposit > 0) { pdf.setTextColor(5, 150, 105); }
-        else { pdf.setTextColor(30, 41, 59); }
-        pdf.text(v, cx + cols[vi] / 2, y + 4, { align: 'center' }); cx += cols[vi];
-      });
-      y += rowH;
-    });
-
-    // --- Summary ---
-    y += 3;
-    pdf.setDrawColor(15, 23, 42); pdf.setLineWidth(0.4); pdf.line(m, y, m + tableW, y); y += 5;
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(15, 23, 42);
-    pdf.text(`Opening Balance: Rs. ${openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, m, y);
-    pdf.text(`Closing Balance: Rs. ${closingBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, w - m, y, { align: 'right' });
-
-    // --- Footer ---
-    pdf.setFontSize(7); pdf.setTextColor(150, 150, 150); pdf.setFont('helvetica', 'normal');
-    pdf.text(`Lucy Garden Ledger - ${user.name || ''}`, m, h - 6);
-    pdf.text(`Page ${pdf.getNumberOfPages()}`, w - m, h - 6, { align: 'right' });
-
-    pdf.save(`LG_Ledger_${user.name?.replace(/\s/g, '_')}_${fromDate}_to_${toDate}.pdf`);
-  };
+  const closingBal = rowData.length > 0 ? rowData[rowData.length - 1].closing : openingBalance;
+  const totalDaily = rowData.reduce((s, r) => s + r.dailyAmt, 0);
+  const totalDeposit = rowData.reduce((s, r) => s + r.deposit, 0);
+  const totalPages = Math.ceil(rowData.length / perPage);
+  const pagedRows = rowData.slice((page - 1) * perPage, page * perPage);
 
   if (loading) return <TableSkeleton />;
 
   return (
-    <div className="pb-24 space-y-4 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-extrabold text-gray-800 dark:text-white sr-only">My Ledger</h2>
-
+    <div className="pb-24 space-y-4">
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#222222] rounded-2xl px-4 py-2.5 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-3 py-2">
           <Calendar size={14} className="text-gray-400" />
-          <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} max={toDate} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent" />
-          <span className="text-gray-400 text-xs">to</span>
-          <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} max={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent" />
+          <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} max={toDate} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent w-[120px]" />
+          <span className="text-gray-400 text-[10px]">to</span>
+          <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} max={todayStr} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent w-[120px]" />
         </div>
-        <motion.button whileTap={{ scale: 0.93 }} onClick={printPDF} className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-[#0f172a] to-[#1e293b] text-white text-xs font-bold rounded-2xl ml-auto shadow-md"><Printer size={13} /> Print</motion.button>
-      </div>
-
-      {/* Per page + Search */}
-      <div className="flex items-center justify-between gap-3">
-        <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#222222] rounded-lg px-2 py-1.5 outline-none">
-          {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n} per page</option>)}
+        <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="ml-auto text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-2 py-1.5 outline-none">
+          {[10, 25, 31, 50].map(n => <option key={n} value={n}>{n}/page</option>)}
         </select>
-        <div className="relative">
-          <input type="text" placeholder="Search date..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="text-sm bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#222222] rounded-xl px-3 py-2 pl-8 outline-none focus:border-royal-300 w-[150px] dark:text-white" />
-          <svg className="absolute left-2.5 top-2.5 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        </div>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white dark:bg-[#111111] rounded-2xl border border-gray-200 dark:border-[#222222] p-4 text-center shadow-sm"><p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">Opening</p>
-          <p className="text-xl font-black text-gray-800 dark:text-white">-{formatPrice(openingBalance)}</p>
-        </div>
-        <div className="bg-white dark:bg-[#111111] rounded-2xl border border-gray-200 dark:border-[#222222] p-4 text-center shadow-sm"><p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase">Closing</p>
-          <p className={`text-lg font-black ${dailyRows.length > 0 && dailyRows[dailyRows.length - 1].closing > 0 ? 'text-red-600' : 'text-mint-700'}`}>
-            -{formatPrice(dailyRows.length > 0 ? dailyRows[dailyRows.length - 1].closing : openingBalance)}
-          </p>
-        </div>
+      <div className="grid grid-cols-4 gap-2">
+        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Opening</p><p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{formatPrice(openingBalance)}</p></div>
+        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Daily</p><p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{formatPrice(totalDaily)}</p></div>
+        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Paid</p><p className="text-sm font-black text-mint-600 mt-0.5">{formatPrice(totalDeposit)}</p></div>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-red-400 font-bold uppercase">Due</p><p className="text-sm font-black text-red-600 mt-0.5">{formatPrice(closingBal)}</p></div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#111111] rounded-2xl border border-gray-200 dark:border-[#222222] overflow-hidden shadow-sm max-w-[calc(100vw-2rem)] lg:max-w-none">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[550px]">
-            <thead>
-              <tr className="bg-[#0f172a] text-white">
-                <th className="px-2 py-3 text-center text-xs font-bold w-[35px]">SI</th>
-                <th className="px-2 py-3 text-center text-xs font-bold w-[75px]">Date</th>
-                <th className="px-2 py-3 text-center text-xs font-bold">Opening</th>
-                <th className="px-2 py-3 text-center text-xs font-bold">Daily</th>
-                <th className="px-2 py-3 text-center text-xs font-bold">Seasonal</th>
-                <th className="px-2 py-3 text-center text-xs font-bold">Total</th>
-                <th className="px-2 py-3 text-center text-xs font-bold">Deposit</th>
-                <th className="px-2 py-3 text-center text-xs font-bold">Closing</th>
+      <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden max-w-[calc(100vw-2rem)]">
+        <div className="overflow-x-auto scrollbar-hide">
+          <table className="border-collapse w-full min-w-[700px]">
+            <thead className="sticky top-0 z-30">
+              <tr className="bg-[#0f172a]">
+                <th rowSpan={2} className="sticky left-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[72px]">Date</th>
+                {PRODUCT_GROUPS.map((g, gi) => <th key={gi} colSpan={g.items.length} className="px-1 py-3 text-center font-extrabold text-white text-xs border-r border-white/10">{groupCodes[g.group] || g.group}</th>)}
+                <th rowSpan={2} className="px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[70px]">TOTAL</th>
+                <th rowSpan={2} className="px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[70px]">PAID</th>
+                <th rowSpan={2} className="sticky right-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs w-[70px] border-l border-white/10">DUE</th>
+              </tr>
+              <tr className="bg-[#1e293b]">
+                {PRODUCT_GROUPS.flatMap(g => g.items).map(item => <th key={item.key} className="px-1 py-2 text-center font-bold text-gray-300 border-r border-white/5 min-w-[40px] text-[10px]">{item.label}<br/><span className="text-[9px] font-medium text-gray-400">₹{item.price}</span></th>)}
               </tr>
             </thead>
             <tbody>
-              {paginatedRows.map((row, i) => (
-                <tr key={row.dateStr} className={`${row.productAmt > 0 || row.deposit > 0 ? 'bg-white dark:bg-[#111111]' : 'bg-gray-50/30 dark:bg-[#111111]/50'} border-b border-gray-100 dark:border-[#222222]`}>
-                  <td className="px-2 py-2.5 text-center text-xs text-gray-400 dark:text-gray-500">{showingFrom + i}</td>
-                  <td className="px-2 py-2.5 text-center text-xs font-bold text-gray-800 dark:text-white">{row.dateStr}</td>
-                  <td className="px-2 py-2.5 text-center text-xs text-gray-600 dark:text-gray-300">-{formatPrice(row.opening)}</td>
-                  <td className="px-2 py-2.5 text-center text-xs font-bold text-red-600">{row.productAmt > 0 ? formatPrice(row.productAmt) : '—'}</td>
-                  <td className="px-2 py-2.5 text-center text-xs font-bold text-amber-600">{row.seasonalAmt > 0 ? formatPrice(row.seasonalAmt) : '—'}</td>
-                  <td className="px-2 py-2.5 text-center text-xs font-black text-royal-700 dark:text-royal-300">{(row.productAmt + row.seasonalAmt) > 0 ? formatPrice(row.productAmt + row.seasonalAmt) : '—'}</td>
-                  <td className="px-2 py-2.5 text-center text-xs font-bold text-mint-700">{row.deposit > 0 ? formatPrice(row.deposit) : '—'}</td>
-                  <td className="px-2 py-2.5 text-center text-xs font-black text-gray-800 dark:text-white">-{formatPrice(row.closing)}</td>
+              {pagedRows.map((row, i) => (
+                <tr key={row.dateStr} className={`${row.dailyAmt > 0 || row.deposit > 0 ? 'bg-white dark:bg-[#111]' : i % 2 === 0 ? 'bg-white dark:bg-[#111]' : 'bg-gray-50/50 dark:bg-[#1a1a1a]/30'} hover:bg-royal-50/30 dark:hover:bg-royal-900/20`}>
+                  <td className="sticky left-0 z-10 bg-inherit px-2 py-2.5 text-center text-[11px] font-bold text-gray-600 dark:text-gray-400 border-b border-r border-gray-200 dark:border-[#222] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap">{row.dateStr}</td>
+                  {PRODUCT_GROUPS.flatMap(g => g.items).map(item => { const q = row.items[item.key] || 0; return <td key={item.key} className="px-1 py-2.5 text-center border-b border-r border-gray-100 dark:border-[#222]">{q > 0 ? <span className="font-black text-[13px] text-royal-700 dark:text-royal-300">{q}</span> : <span className="text-gray-200 dark:text-gray-600">·</span>}</td>; })}
+                  <td className="px-2 py-2.5 text-center border-b border-r border-gray-200 dark:border-[#222]">{row.dailyAmt > 0 ? <span className="font-black text-[12px] text-gray-800 dark:text-white">₹{row.dailyAmt}</span> : <span className="text-gray-200">—</span>}</td>
+                  <td className="px-2 py-2.5 text-center border-b border-r border-gray-200 dark:border-[#222]">{row.deposit > 0 ? <span className="font-bold text-[12px] text-mint-700 dark:text-mint-400">₹{row.deposit}</span> : <span className="text-gray-200">—</span>}</td>
+                  <td className="sticky right-0 z-10 bg-inherit px-2 py-2.5 text-center border-b border-l border-gray-200 dark:border-[#222] shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]"><span className="font-black text-[12px] text-gray-800 dark:text-white">{row.closing}</span></td>
                 </tr>
               ))}
+              <tr className="bg-[#0f172a]">
+                <td className="sticky left-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-xs font-bold text-white border-r border-white/10">TOTAL</td>
+                {PRODUCT_GROUPS.flatMap(g => g.items).map(item => { const t = rowData.reduce((s, r) => s + (r.items[item.key] || 0), 0); return <td key={item.key} className="px-1 py-2.5 text-center text-[12px] font-black text-amber-300 border-r border-white/5">{t > 0 ? t : '·'}</td>; })}
+                <td className="px-2 py-2.5 text-center text-[12px] font-black text-white border-r border-white/10">{totalDaily > 0 ? `₹${totalDaily}` : '—'}</td>
+                <td className="px-2 py-2.5 text-center text-[11px] font-bold text-mint-300 border-r border-white/10">{totalDeposit > 0 ? `₹${totalDeposit}` : '—'}</td>
+                <td className="sticky right-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-[12px] font-black text-white border-l border-white/10">₹{closingBal}</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] text-gray-500 dark:text-gray-400">Showing {showingFrom} to {showingTo} of {filteredRows.length} entries</p>
-        <div className="flex items-center gap-2">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            className={`p-2 rounded-lg border ${page === 1 ? 'border-gray-100 dark:border-[#222222] text-gray-300 dark:text-gray-600' : 'border-gray-200 dark:border-[#222222] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'}`}>
-            <ChevronLeft size={16} />
-          </motion.button>
-          <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Page {page}/{totalPages || 1}</span>
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-            className={`p-2 rounded-lg border ${page >= totalPages ? 'border-gray-100 dark:border-[#222222] text-gray-300 dark:text-gray-600' : 'border-gray-200 dark:border-[#222222] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'}`}>
-            <ChevronRight size={16} />
-          </motion.button>
-        </div>
-      </div>
+      {totalPages > 1 && (
+      <div className="flex items-center justify-between px-1">
+        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 disabled:opacity-30"><ChevronLeft size={14} /> Prev</button>
+        <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Page {page} of {totalPages}</span>
+        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 disabled:opacity-30">Next <ChevronRight size={14} /></button>
+      </div>)}
     </div>
   );
 }

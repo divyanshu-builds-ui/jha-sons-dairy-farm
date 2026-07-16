@@ -122,7 +122,7 @@ export default function AdminLayout() {
       '/admin/daily-ledger': 'Orders, dispatch & delivery',
       '/admin/company-order': 'Company-level order summary',
       '/admin/inventory': 'Products & pricing',
-      '/admin/ledger': 'Payments & balances',
+      '/admin/ledger': 'Retailer summary & payments',
       '/admin/settings': 'App configuration',
       '/admin/support': 'Customer support tickets',
       '/admin/sessions': 'Active sessions & security',

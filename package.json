@@ -1,6 +1,6 @@
 {
   "name": "lucy-garden",
-  "version": "2.8.0",
+  "version": "2.10.0",
   "private": true,
   "dependencies": {
     "firebase": "^10.7.0",
