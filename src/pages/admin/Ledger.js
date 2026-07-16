@@ -333,29 +333,29 @@ export default function Ledger() {
   const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
 
   return (
-    <div className="space-y-4 overflow-hidden">
+    <div className="space-y-3" style={{overflow: 'hidden'}}>
       <AnimatePresence>{toast && (<motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-[4.5rem] left-4 right-4 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:w-auto z-[100] flex items-center justify-center gap-2 px-4 py-3 rounded-2xl shadow-xl bg-mint-50 border border-mint-200 text-mint-800 backdrop-blur-sm"><Check size={14} strokeWidth={3} /><span className="text-sm font-bold">{toast}</span></motion.div>)}</AnimatePresence>
 
       {/* Area Tabs */}
-      <div className="overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
+      <div className="overflow-x-auto -mx-1 px-1 pb-1">
         <div className="flex gap-1.5 w-max">
-          {['All', ...areas].map(a => { const cnt = dueList.filter(d => a === 'All' ? true : d.area === a).length; return <button key={a} onClick={() => { setSelectedArea(a); setSelectedRetailer(''); }} className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap ${selectedArea === a ? 'bg-royal-700 text-white shadow-sm' : 'bg-gray-100 dark:bg-[#111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222]'}`}>{a} {cnt > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">{cnt}</span>}</button>; })}
+          {['All', ...areas].map(a => { const cnt = dueList.filter(d => a === 'All' ? true : d.area === a).length; return <button key={a} onClick={() => { setSelectedArea(a); setSelectedRetailer(''); }} className={`px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap ${selectedArea === a ? 'bg-royal-700 text-white shadow-sm' : 'bg-gray-100 dark:bg-[#111] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#222]'}`}>{a} {cnt > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">{cnt}</span>}</button>; })}
         </div>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-[220px]">
-        <input type="text" placeholder="Search retailer..." value={search} onChange={e => setSearch(e.target.value)} className="text-sm bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-3 py-2 pl-8 pr-9 outline-none w-full dark:text-white" />
+      <div className="relative">
+        <input type="text" placeholder="Search retailer..." value={search} onChange={e => setSearch(e.target.value)} className="text-[13px] bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-3 py-2 pl-8 pr-9 outline-none w-full dark:text-white" />
         <svg className="absolute left-2.5 top-2.5 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 dark:bg-[#222] rounded-full flex items-center justify-center"><X size={10} className="text-gray-500" /></button>}
       </div>
 
       {/* Retailer Chips */}
-      <div className="overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
-        <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto scrollbar-hide">
+      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
           {filteredRetailers.map(r => { const due = dueList.find(d => d.phone === r.phone); return (
-            <button key={r.phone} onClick={() => { setSelectedRetailer(r.phone); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap ${r.phone === selectedRetailer ? 'bg-royal-600 text-white shadow-md ring-2 ring-royal-300' : 'bg-white dark:bg-[#111] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#222]'}`}>
-              {r.name}{due && due.balance > 0 && <span className="ml-1.5 px-1.5 py-0.5 bg-red-500 text-white text-[8px] font-bold rounded-full">{due.balance >= 1000 ? `${(due.balance/1000).toFixed(1)}k` : due.balance}</span>}
+            <button key={r.phone} onClick={() => { setSelectedRetailer(r.phone); setPage(1); }} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap ${r.phone === selectedRetailer ? 'bg-royal-600 text-white shadow-md ring-2 ring-royal-300' : 'bg-white dark:bg-[#111] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-[#222]'}`}>
+              {r.name}{due && due.balance > 0 && <span className="ml-1 px-1 py-0.5 bg-red-500 text-white text-[8px] font-bold rounded-full">{due.balance >= 1000 ? `${(due.balance/1000).toFixed(1)}k` : due.balance}</span>}
             </button>); })}
         </div>
       </div>
@@ -379,44 +379,42 @@ export default function Ledger() {
       ) : (<>
 
         {/* Date Range + Buttons */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-3 py-2">
-            <Calendar size={14} className="text-gray-400" />
-            <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} max={toDate} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent w-[120px]" />
-            <span className="text-gray-400 text-[10px]">to</span>
-            <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} max={todayStr} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent w-[120px]" />
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-1.5">
+            <Calendar size={12} className="text-gray-400 shrink-0" />
+            <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} max={toDate} className="text-[11px] font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent flex-1 min-w-0" />
+            <span className="text-gray-300 text-[9px]">→</span>
+            <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} max={todayStr} className="text-[11px] font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent flex-1 min-w-0" />
           </div>
-          {syncing && <RefreshCw size={14} className="text-gray-400 animate-spin" />}
-          <motion.button whileTap={{ scale: 0.93 }} onClick={printDailyPDF} className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-[#0f172a] text-white text-xs font-bold rounded-xl"><Printer size={13} /> <span className="hidden sm:inline">Daily PDF</span><span className="sm:hidden">Daily</span></motion.button>
-          {ALL_SEASONAL_KEYS.length > 0 && <motion.button whileTap={{ scale: 0.93 }} onClick={printSeasonalPDF} className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-amber-600 text-white text-xs font-bold rounded-xl"><Printer size={13} /> <span className="hidden sm:inline">Seasonal</span></motion.button>}
-          <motion.button whileTap={{ scale: 0.93 }} onClick={exportCSV} className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-mint-600 text-white text-xs font-bold rounded-xl"><Download size={13} /> <span className="hidden sm:inline">Excel</span></motion.button>
-          <div className="flex items-center gap-1.5 ml-auto">
-            <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowPayModal(true)} className="flex items-center gap-1 px-3 py-2.5 text-xs font-bold rounded-xl bg-green-600 text-white"><IndianRupee size={11} /> Collect</motion.button>
-            <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowBalModal(true)} className="flex items-center gap-1 px-3 py-2.5 text-xs font-bold rounded-xl bg-amber-500 text-white"><IndianRupee size={11} /> Set Bal</motion.button>
+          <div className="grid grid-cols-3 gap-1">
+            <motion.button whileTap={{ scale: 0.93 }} onClick={printDailyPDF} className="flex items-center justify-center gap-1 py-1.5 bg-[#0f172a] text-white text-[10px] font-bold rounded-lg"><Printer size={10} />Daily</motion.button>
+            <motion.button whileTap={{ scale: 0.93 }} onClick={exportCSV} className="flex items-center justify-center gap-1 py-1.5 bg-mint-600 text-white text-[10px] font-bold rounded-lg"><Download size={10} />Excel</motion.button>
+            {ALL_SEASONAL_KEYS.length > 0 ? <motion.button whileTap={{ scale: 0.93 }} onClick={printSeasonalPDF} className="flex items-center justify-center gap-1 py-1.5 bg-amber-600 text-white text-[10px] font-bold rounded-lg"><Printer size={10} />Seasonal</motion.button> : <div />}
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowPayModal(true)} className="flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg bg-green-600 text-white"><IndianRupee size={10} />Collect</motion.button>
+            <motion.button whileTap={{ scale: 0.93 }} onClick={() => setShowBalModal(true)} className="flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg bg-amber-500 text-white"><IndianRupee size={10} />Set Bal</motion.button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          <span className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-3 py-1.5 font-bold text-gray-600 dark:text-gray-300">{rowData.length} Days</span>
-          <span className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 font-bold text-amber-700">Opening: {formatPrice(openingBalance)}</span>
-          <span className="bg-red-50 border border-red-100 rounded-lg px-3 py-1.5 font-bold text-red-700">Due: {formatPrice(closingBal)}</span>
-          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="ml-auto text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-2 py-1.5 outline-none">
-            {[10, 25, 31, 50, 100].map(n => <option key={n} value={n}>{n}/page</option>)}
+        {/* Stats + Per Page */}
+        <div className="flex items-center gap-1.5 text-[10px]">
+          <span className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-md px-2 py-1 font-bold text-gray-600 dark:text-gray-300">{rowData.length}d</span>
+          <span className="bg-amber-50 border border-amber-100 rounded-md px-2 py-1 font-bold text-amber-700">Op:{formatPrice(openingBalance)}</span>
+          <span className="bg-red-50 border border-red-100 rounded-md px-2 py-1 font-bold text-red-700">Due:{formatPrice(closingBal)}</span>
+          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="ml-auto text-[10px] font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-md px-1.5 py-1 outline-none">
+            {[10, 25, 31, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
 
         {/* Retailer Info */}
-        <div className="flex items-center gap-2.5 bg-royal-50 dark:bg-royal-900/20 border border-royal-200 dark:border-royal-800 rounded-2xl px-4 py-3">
-          <div className="w-9 h-9 bg-royal-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">{retailerName?.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
+        <div className="flex items-center gap-2 bg-royal-50 dark:bg-royal-900/20 border border-royal-200 dark:border-royal-800 rounded-xl px-3 py-2">
+          <div className="w-7 h-7 bg-royal-600 rounded-md flex items-center justify-center text-white font-bold text-[9px] shrink-0">{retailerName?.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-800 dark:text-white truncate">{retailerName}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{selectedRetailer}</p>
+            <p className="text-[12px] font-bold text-gray-800 dark:text-white truncate">{retailerName}</p>
+            <p className="text-[9px] text-gray-400">{selectedRetailer}</p>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-[10px] text-gray-400">Opening: <span className="font-bold text-gray-700 dark:text-gray-200">{formatPrice(openingBalance)}</span></p>
-            <p className="text-[10px] text-red-400 font-bold">Due: <span className="text-red-600 text-sm font-black">{formatPrice(closingBal)}</span></p>
-          </div>
+          <p className="text-sm font-black text-red-600 shrink-0">{formatPrice(closingBal)}</p>
         </div>
 
         {/* View Toggle */}
@@ -427,18 +425,18 @@ export default function Ledger() {
 
         {viewMode === 'summary' ? (<>
         {/* Summary Cards */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Daily</p><p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{formatPrice(totalDaily)}</p></div>
-          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Seasonal</p><p className="text-sm font-black text-amber-600 mt-0.5">{formatPrice(totalSeasonal)}</p></div>
-          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Paid</p><p className="text-sm font-black text-mint-600 mt-0.5">{formatPrice(totalDeposit)}</p></div>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-red-400 font-bold uppercase">Due</p><p className="text-sm font-black text-red-600 mt-0.5">{formatPrice(closingBal)}</p></div>
+        <div className="grid grid-cols-4 gap-1.5">
+          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-1.5 py-2 text-center"><p className="text-[8px] text-gray-400 font-bold">DAILY</p><p className="text-[11px] font-black text-gray-800 dark:text-white">{formatPrice(totalDaily)}</p></div>
+          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-1.5 py-2 text-center"><p className="text-[8px] text-gray-400 font-bold">SEASONAL</p><p className="text-[11px] font-black text-amber-600">{formatPrice(totalSeasonal)}</p></div>
+          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-1.5 py-2 text-center"><p className="text-[8px] text-gray-400 font-bold">PAID</p><p className="text-[11px] font-black text-mint-600">{formatPrice(totalDeposit)}</p></div>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-1.5 py-2 text-center"><p className="text-[8px] text-red-400 font-bold">DUE</p><p className="text-[11px] font-black text-red-600">{formatPrice(closingBal)}</p></div>
         </div>
 
         {/* Daily Table */}
         {PRODUCT_GROUPS.length > 0 && (
-        <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden max-w-[calc(100vw-2rem)] lg:max-w-none">
+        <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden">
           <div className="px-4 py-3 bg-gradient-to-r from-[#0f172a] to-[#1e293b]"><p className="text-sm font-bold text-white">Daily Products</p></div>
-          <div className="overflow-x-auto scrollbar-hide">
+          <div className="overflow-x-auto">
             <table className="border-collapse w-full min-w-[900px]">
               <thead className="sticky top-0 z-30">
                 <tr className="bg-[#0f172a]">
@@ -476,9 +474,9 @@ export default function Ledger() {
 
         {/* Seasonal Table */}
         {SEASONAL_GROUPS.length > 0 && (
-        <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden max-w-[calc(100vw-2rem)] lg:max-w-none">
+        <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden">
           <div className="px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600"><p className="text-sm font-bold text-white">Seasonal Products</p></div>
-          <div className="overflow-x-auto scrollbar-hide">
+          <div className="overflow-x-auto">
             <table className="border-collapse w-full min-w-[600px]">
               <thead className="sticky top-0 z-30">
                 <tr className="bg-[#0f172a]">
