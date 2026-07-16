@@ -57,13 +57,15 @@ export default function MyLedger() {
   const priceMap = useMemo(() => { const m = {}; products.forEach(p => { m[p.name] = p.price || 0; }); return m; }, [products]);
   const PRODUCT_GROUPS = useMemo(() => { const gm = {}; groupOrder.forEach(g => { gm[g] = []; }); products.filter(p => p.group && p.type === 'daily').sort((a, b) => parseToGrams(b) - parseToGrams(a)).forEach(p => { if (!gm[p.group]) gm[p.group] = []; gm[p.group].push({ key: p.name, label: p.label || p.name, price: p.price || 0 }); }); const r = []; groupOrder.forEach(g => { if (gm[g]?.length > 0) r.push({ group: g, items: gm[g] }); }); Object.keys(gm).forEach(g => { if (!groupOrder.includes(g) && gm[g]?.length > 0) r.push({ group: g, items: gm[g] }); }); return r; }, [products, groupOrder]);
   const ALL_DAILY_KEYS = useMemo(() => PRODUCT_GROUPS.flatMap(g => g.items.map(i => i.key)), [PRODUCT_GROUPS]);
-  const ALL_SEASONAL_KEYS = useMemo(() => { const sm = []; products.filter(p => p.type === 'seasonal').forEach(p => sm.push(p.name)); return sm; }, [products]);
+  const SEASONAL_GROUPS = useMemo(() => { const sm = {}; const r = []; products.filter(p => p.group && p.type === 'seasonal').sort((a, b) => parseToGrams(b) - parseToGrams(a)).forEach(p => { if (!sm[p.group]) { sm[p.group] = []; r.push({ group: p.group, items: sm[p.group] }); } sm[p.group].push({ key: p.name, label: p.label || p.name, price: p.price || 0 }); }); const ng = products.filter(p => p.type === 'seasonal' && !p.group).sort((a, b) => parseToGrams(b) - parseToGrams(a)); if (ng.length > 0) r.push({ group: 'OTHER', items: ng.map(p => ({ key: p.name, label: p.label || p.name, price: p.price || 0 })) }); return r; }, [products]);
+  const ALL_SEASONAL_KEYS = useMemo(() => SEASONAL_GROUPS.flatMap(g => g.items.map(i => i.key)), [SEASONAL_GROUPS]);
 
   const rowData = useMemo(() => { const rows = []; let prev = openingBalance; allDates.forEach(date => { const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; const dayData = ordersDayData[key] || { items: {}, deposit: 0 }; let dailyAmt = 0, seasonalAmt = 0; Object.entries(dayData.items).forEach(([name, qty]) => { const amt = qty * (priceMap[name] || 0); if (ALL_SEASONAL_KEYS.includes(name)) seasonalAmt += amt; else dailyAmt += amt; }); const deposit = dayData.deposit || 0; const closing = prev + dailyAmt + seasonalAmt - deposit; rows.push({ date, dateStr: `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`, items: dayData.items, dailyAmt, seasonalAmt, deposit, closing }); prev = closing; }); return rows; }, [allDates, ordersDayData, openingBalance, priceMap, ALL_SEASONAL_KEYS]);
 
   const closingBal = rowData.length > 0 ? rowData[rowData.length - 1].closing : openingBalance;
   const totalDaily = rowData.reduce((s, r) => s + r.dailyAmt, 0);
   const totalDeposit = rowData.reduce((s, r) => s + r.deposit, 0);
+  const totalSeasonal = rowData.reduce((s, r) => s + r.seasonalAmt, 0);
   const totalPages = Math.ceil(rowData.length / perPage);
   const pagedRows = rowData.slice((page - 1) * perPage, page * perPage);
 
@@ -85,9 +87,10 @@ export default function MyLedger() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Opening</p><p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{formatPrice(openingBalance)}</p></div>
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Daily</p><p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{formatPrice(totalDaily)}</p></div>
+        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Seasonal</p><p className="text-sm font-black text-amber-600 mt-0.5">{formatPrice(totalSeasonal)}</p></div>
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Paid</p><p className="text-sm font-black text-mint-600 mt-0.5">{formatPrice(totalDeposit)}</p></div>
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-red-400 font-bold uppercase">Due</p><p className="text-sm font-black text-red-600 mt-0.5">{formatPrice(closingBal)}</p></div>
       </div>
@@ -129,6 +132,40 @@ export default function MyLedger() {
           </table>
         </div>
       </div>
+
+      {/* Seasonal Table */}
+      {SEASONAL_GROUPS.length > 0 && (
+      <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden max-w-[calc(100vw-2rem)]">
+        <div className="px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600"><p className="text-sm font-bold text-white">Seasonal Products</p></div>
+        <div className="overflow-x-auto scrollbar-hide">
+          <table className="border-collapse w-full min-w-[500px]">
+            <thead className="sticky top-0 z-30">
+              <tr className="bg-[#0f172a]">
+                <th rowSpan={2} className="sticky left-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[72px]">Date</th>
+                {SEASONAL_GROUPS.map((g, gi) => <th key={gi} colSpan={g.items.length} className="px-1 py-3 text-center font-extrabold text-white text-xs border-r border-white/10">{g.group}</th>)}
+                <th rowSpan={2} className="sticky right-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs w-[70px] border-l border-white/10">TOTAL</th>
+              </tr>
+              <tr className="bg-[#1e293b]">
+                {SEASONAL_GROUPS.flatMap(g => g.items).map(item => <th key={item.key} className="px-1 py-2 text-center font-bold text-gray-300 border-r border-white/5 min-w-[40px] text-[10px]">{item.label}<br/><span className="text-[9px] font-medium text-gray-400">₹{item.price}</span></th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {pagedRows.map((row, i) => (
+                <tr key={row.dateStr} className={`${row.seasonalAmt > 0 ? 'bg-white dark:bg-[#111]' : i % 2 === 0 ? 'bg-white dark:bg-[#111]' : 'bg-gray-50/50 dark:bg-[#1a1a1a]/30'} hover:bg-royal-50/30 dark:hover:bg-royal-900/20`}>
+                  <td className="sticky left-0 z-10 bg-inherit px-2 py-2.5 text-center text-[11px] font-bold text-gray-600 dark:text-gray-400 border-b border-r border-gray-200 dark:border-[#222] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap">{row.dateStr}</td>
+                  {SEASONAL_GROUPS.flatMap(g => g.items).map(item => { const q = row.items[item.key] || 0; return <td key={item.key} className="px-1 py-2.5 text-center border-b border-r border-gray-100 dark:border-[#222]">{q > 0 ? <span className="font-black text-[13px] text-amber-700 dark:text-amber-300">{q}</span> : <span className="text-gray-200 dark:text-gray-600">·</span>}</td>; })}
+                  <td className="sticky right-0 z-10 bg-inherit px-2 py-2.5 text-center border-b border-l border-gray-200 dark:border-[#222] shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]">{row.seasonalAmt > 0 ? <span className="font-black text-[12px] text-amber-700 dark:text-amber-300">₹{row.seasonalAmt}</span> : <span className="text-gray-200">—</span>}</td>
+                </tr>
+              ))}
+              <tr className="bg-[#0f172a]">
+                <td className="sticky left-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-xs font-bold text-white border-r border-white/10">TOTAL</td>
+                {SEASONAL_GROUPS.flatMap(g => g.items).map(item => { const t = rowData.reduce((s, r) => s + (r.items[item.key] || 0), 0); return <td key={item.key} className="px-1 py-2.5 text-center text-[12px] font-black text-amber-300 border-r border-white/5">{t > 0 ? t : '·'}</td>; })}
+                <td className="sticky right-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-[12px] font-black text-amber-300 border-l border-white/10">{totalSeasonal > 0 ? `₹${totalSeasonal}` : '—'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>)}
 
       {/* Pagination */}
       {totalPages > 1 && (
