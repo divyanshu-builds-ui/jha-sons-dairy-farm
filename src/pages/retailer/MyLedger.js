@@ -69,6 +69,71 @@ export default function MyLedger() {
   const totalPages = Math.ceil(rowData.length / perPage);
   const pagedRows = rowData.slice((page - 1) * perPage, page * perPage);
 
+  const printPDF = () => {
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' }); registerHindiFont(pdf);
+    const w = pdf.internal.pageSize.getWidth(), h = pdf.internal.pageSize.getHeight(), m = 3;
+    const dateW = 22, totalW = 20, depW = 20, closeW = 20;
+    const availW = w - m * 2 - dateW - totalW - depW - closeW;
+    const qtyW = ALL_DAILY_KEYS.length > 0 ? Math.max(5, Math.floor(availW / ALL_DAILY_KEYS.length)) : 10;
+    const qtyFontSize = qtyW < 7 ? 9 : qtyW < 10 ? 11 : 13;
+    const rowH = 11, groupH = 8, subH = 8;
+    let y = m;
+
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(0, 0, 0);
+    pdf.text('LUCY GARDEN', m, y + 5);
+    drawText(pdf, `${user.name || user.phone}  |  ${fromDate} to ${toDate}`, w - m, y + 5, { size: 10, align: 'right' });
+    y += 8; pdf.setDrawColor(0); pdf.setLineWidth(0.3); pdf.line(m, y, w - m, y); y += 2;
+    pdf.setFontSize(8); pdf.setTextColor(40, 40, 40);
+    drawText(pdf, `Opening: Rs.${openingBalance} | Closing: Rs.${closingBal}`, m, y + 3, { size: 8, color: [40, 40, 40] });
+    pdf.setTextColor(0, 0, 0); y += 5;
+
+    const drawHeader = () => {
+      pdf.setDrawColor(80, 80, 80); pdf.setLineWidth(0.3); pdf.setFillColor(210, 210, 210); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(0, 0, 0);
+      pdf.rect(m, y, dateW, groupH + subH, 'FD'); pdf.setFontSize(9); pdf.text('DATE', m + dateW / 2, y + (groupH + subH) / 2 + 1, { align: 'center' });
+      let gx = m + dateW;
+      PRODUCT_GROUPS.forEach(g => { const span = g.items.length * qtyW; pdf.setFillColor(210, 210, 210); pdf.rect(gx, y, span, groupH, 'FD'); const lbl = groupCodes[g.group] || g.group; let fs = 10; pdf.setFontSize(fs); while (pdf.getTextWidth(lbl) > span - 2 && fs > 7) { fs -= 0.5; pdf.setFontSize(fs); } pdf.text(lbl, gx + span / 2, y + 5.5, { align: 'center' }); gx += span; });
+      pdf.setFillColor(210, 210, 210); pdf.rect(gx, y, totalW, groupH + subH, 'FD'); pdf.setFontSize(9); pdf.text('TOTAL', gx + totalW / 2, y + (groupH + subH) / 2 + 1, { align: 'center' }); gx += totalW;
+      pdf.setFillColor(210, 210, 210); pdf.rect(gx, y, depW, groupH + subH, 'FD'); pdf.setFontSize(9); pdf.text('PAID', gx + depW / 2, y + (groupH + subH) / 2 + 1, { align: 'center' }); gx += depW;
+      pdf.setFillColor(210, 210, 210); pdf.rect(gx, y, closeW, groupH + subH, 'FD'); pdf.setFontSize(9); pdf.text('DUE', gx + closeW / 2, y + (groupH + subH) / 2 + 1, { align: 'center' });
+      const sy = y + groupH; gx = m + dateW;
+      PRODUCT_GROUPS.forEach(g => g.items.forEach(item => { pdf.setFillColor(230, 230, 230); pdf.rect(gx, sy, qtyW, subH, 'FD'); pdf.setTextColor(0, 0, 0); const l = item.label; let fs2 = 9; pdf.setFontSize(fs2); while (pdf.getTextWidth(l) > qtyW - 1 && fs2 > 5) { fs2 -= 0.5; pdf.setFontSize(fs2); } pdf.text(l, gx + qtyW / 2, sy + 5, { align: 'center' }); gx += qtyW; }));
+      y += groupH + subH;
+    };
+    drawHeader();
+
+    rowData.forEach(row => {
+      if (y + rowH > h - 8) { pdf.addPage(); y = m; drawHeader(); }
+      pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.3); pdf.setFillColor(255, 255, 255); let rx = m;
+      pdf.rect(rx, y, dateW, rowH, 'FD'); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0, 0, 0); pdf.text(row.dateStr.slice(0, 5), rx + dateW / 2, y + 6.5, { align: 'center' }); rx += dateW;
+      ALL_DAILY_KEYS.forEach(key => { pdf.setFillColor(255, 255, 255); pdf.setDrawColor(100, 100, 100); pdf.rect(rx, y, qtyW, rowH, 'FD'); const q = row.items[key] || 0; if (q > 0) { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(qtyFontSize); pdf.setTextColor(0, 0, 0); pdf.text(`${q}`, rx + qtyW / 2, y + 7, { align: 'center' }); } rx += qtyW; });
+      pdf.setFillColor(255, 255, 255); pdf.setDrawColor(100, 100, 100); pdf.rect(rx, y, totalW, rowH, 'FD'); if (row.dailyAmt > 0) { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0, 0, 0); pdf.text(`${row.dailyAmt}`, rx + totalW / 2, y + 6.5, { align: 'center' }); } rx += totalW;
+      pdf.setFillColor(255, 255, 255); pdf.setDrawColor(100, 100, 100); pdf.rect(rx, y, depW, rowH, 'FD'); if (row.deposit > 0) { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0, 0, 0); pdf.text(`${row.deposit}`, rx + depW / 2, y + 6.5, { align: 'center' }); } rx += depW;
+      pdf.setFillColor(255, 255, 255); pdf.setDrawColor(100, 100, 100); pdf.rect(rx, y, closeW, rowH, 'FD'); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0, 0, 0); pdf.text(`${row.closing}`, rx + closeW / 2, y + 6.5, { align: 'center' });
+      y += rowH;
+    });
+
+    if (y + rowH > h - 8) { pdf.addPage(); y = m; drawHeader(); }
+    pdf.setDrawColor(50, 50, 50); pdf.setLineWidth(0.4); pdf.line(m, y, w - m, y); y += 1;
+    pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.3);
+    let rx = m;
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(0, 0, 0); pdf.setFillColor(220, 220, 220);
+    pdf.rect(rx, y, dateW, rowH, 'FD'); pdf.text('TOTAL', rx + dateW / 2, y + 6.5, { align: 'center' }); rx += dateW;
+    ALL_DAILY_KEYS.forEach(key => {
+      pdf.setFillColor(220, 220, 220); pdf.setDrawColor(100, 100, 100); pdf.rect(rx, y, qtyW, rowH, 'FD');
+      const t = rowData.reduce((s, r) => s + (r.items[key] || 0), 0);
+      if (t > 0) { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(t >= 100 ? 8 : 10); pdf.setTextColor(0, 0, 0); pdf.text(`${t}`, rx + qtyW / 2, y + 7, { align: 'center' }); }
+      rx += qtyW;
+    });
+    pdf.setFillColor(220, 220, 220); pdf.setDrawColor(100, 100, 100);
+    pdf.rect(rx, y, totalW, rowH, 'FD'); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(0, 0, 0); pdf.text(`${totalDaily}`, rx + totalW / 2, y + 6.5, { align: 'center' }); rx += totalW;
+    pdf.setFillColor(220, 220, 220); pdf.setDrawColor(100, 100, 100); pdf.rect(rx, y, depW, rowH, 'FD'); pdf.text(`${totalDeposit}`, rx + depW / 2, y + 6.5, { align: 'center' }); rx += depW;
+    pdf.setFillColor(220, 220, 220); pdf.setDrawColor(100, 100, 100); pdf.rect(rx, y, closeW, rowH, 'FD'); pdf.text(`${closingBal}`, rx + closeW / 2, y + 6.5, { align: 'center' });
+
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(80, 80, 80);
+    drawText(pdf, `Lucy Garden | ${user.name || user.phone} | ${fromDate} to ${toDate}`, w / 2, h - 3, { size: 7, color: [80, 80, 80], align: 'center' });
+    pdf.save(`Ledger_${(user.name || user.phone).replace(/\s/g, '_')}_${fromDate}.pdf`);
+  };
+
   if (loading) return <TableSkeleton />;
 
   return (
@@ -81,9 +146,15 @@ export default function MyLedger() {
           <span className="text-gray-400 text-[10px]">to</span>
           <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} max={todayStr} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent w-[120px]" />
         </div>
-        <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="ml-auto text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-2 py-1.5 outline-none">
+        <div className="ml-auto flex items-center gap-2">
+        <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-2 py-1.5 outline-none">
           {[10, 25, 31, 50].map(n => <option key={n} value={n}>{n}/page</option>)}
         </select>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={printPDF}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0f172a] text-white text-xs font-bold rounded-lg">
+          <Printer size={12} /> PDF
+        </motion.button>
+        </div>
       </div>
 
       {/* Summary */}

@@ -416,8 +416,8 @@ export default function DailyLedger() {
     y += 8; pdf.setDrawColor(0); pdf.setLineWidth(0.3); pdf.line(m, y, w - m, y); y += 2;
 
     const drawHeader = () => {
-      pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.15);
-      pdf.setFillColor(235, 235, 235);
+      pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.3);
+      pdf.setFillColor(210, 210, 210);
       pdf.rect(m, y, siW, groupH + subH, 'FD');
       pdf.rect(m + siW, y, retW, groupH + subH, 'FD');
       pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0, 0, 0);
@@ -426,25 +426,25 @@ export default function DailyLedger() {
       let gx = m + siW + retW;
       PRODUCT_GROUPS.forEach(g => {
         const span = g.items.length * qtyW;
-        pdf.setFillColor(235, 235, 235); pdf.rect(gx, y, span, groupH, 'FD');
+        pdf.setFillColor(210, 210, 210); pdf.rect(gx, y, span, groupH, 'FD');
         pdf.setFont('helvetica', 'bold');
         const gLabel = groupCodes[g.group] || g.group;
         let gFs = 10; pdf.setFontSize(gFs); while (pdf.getTextWidth(gLabel) > span - 2 && gFs > 7) { gFs -= 0.5; pdf.setFontSize(gFs); } pdf.text(gLabel, gx + span / 2, y + 5.5, { align: 'center' });
         gx += span;
       });
-      pdf.setFillColor(235, 235, 235);
+      pdf.setFillColor(210, 210, 210);
       pdf.rect(gx, y, totalW, groupH + subH, 'FD');
       pdf.setFontSize(9); pdf.text('TOTAL', gx + totalW / 2, y + (groupH + subH) / 2 - 1, { align: 'center' });
       pdf.setFontSize(6); pdf.text('(Daily+Seasonal)', gx + totalW / 2, y + (groupH + subH) / 2 + 4, { align: 'center' });
       gx += totalW;
-      pdf.setFillColor(235, 235, 235); pdf.rect(gx, y, paidW, groupH + subH, 'FD');
+      pdf.setFillColor(210, 210, 210); pdf.rect(gx, y, paidW, groupH + subH, 'FD');
       pdf.text('PAID', gx + paidW / 2, y + (groupH + subH) / 2 + 1, { align: 'center' });
       gx += paidW;
-      pdf.setFillColor(235, 235, 235); pdf.rect(gx, y, signW, groupH + subH, 'FD');
+      pdf.setFillColor(210, 210, 210); pdf.rect(gx, y, signW, groupH + subH, 'FD');
       pdf.setFontSize(8); pdf.text('SIGN', gx + signW / 2, y + (groupH + subH) / 2 + 1, { align: 'center' });
       const sy = y + groupH; gx = m + siW + retW;
       PRODUCT_GROUPS.forEach(g => { g.items.forEach(item => {
-        pdf.setFillColor(248, 248, 248); pdf.rect(gx, sy, qtyW, subH, 'FD');
+        pdf.setFillColor(230, 230, 230); pdf.rect(gx, sy, qtyW, subH, 'FD');
         pdf.setFont('helvetica', 'bold'); pdf.setTextColor(0, 0, 0);
         const lbl = item.label || '';
         let lblFs = 9; pdf.setFontSize(lblFs); while (pdf.getTextWidth(lbl) > qtyW - 1 && lblFs > 5) { lblFs -= 0.5; pdf.setFontSize(lblFs); }
@@ -457,7 +457,7 @@ export default function DailyLedger() {
     retailers.forEach((ret, i) => {
       if (y + rowH > h - 8) { pdf.addPage(); pageNum++; y = m; pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(130, 130, 130); pdf.text(`Pg ${pageNum}`, w - m, y + 3, { align: 'right' }); pdf.setTextColor(0, 0, 0); y += 4; drawHeader(); }
       const oData = orderMap[ret.phone]; const total = calcTotal(oData);
-      pdf.setDrawColor(180, 180, 180); pdf.setLineWidth(0.1); let rx = m;
+      pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.3); let rx = m;
       pdf.setFillColor(255, 255, 255); pdf.rect(rx, y, siW, rowH, 'FD');
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(0, 0, 0);
       pdf.text(`${i + 1}`, rx + siW / 2, y + 6.5, { align: 'center' }); rx += siW;
@@ -479,27 +479,27 @@ export default function DailyLedger() {
     if (y + rowH > h - 8) { pdf.addPage(); pageNum++; y = m; pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(130, 130, 130); pdf.text(`Pg ${pageNum}`, w - m, y + 3, { align: 'right' }); pdf.setTextColor(0, 0, 0); y += 4; drawHeader(); }
     pdf.setDrawColor(50, 50, 50); pdf.setLineWidth(0.4); pdf.line(m, y, m + siW + retW + ALL_FIXED_KEYS.length * qtyW + totalW + paidW + signW, y);
     y += 1;
-    pdf.setDrawColor(180, 180, 180); pdf.setLineWidth(0.1); let rx = m;
-    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, siW, rowH, 'FD'); rx += siW;
-    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, retW, rowH, 'FD');
+    pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.3); let rx = m;
+    pdf.setFillColor(220, 220, 220); pdf.rect(rx, y, siW, rowH, 'FD'); rx += siW;
+    pdf.setFillColor(220, 220, 220); pdf.rect(rx, y, retW, rowH, 'FD');
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(0, 0, 0);
     pdf.text('TOTAL', rx + 2, y + 6.5); rx += retW;
     ALL_FIXED_KEYS.forEach(key => {
-      pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, qtyW, rowH, 'FD');
+      pdf.setFillColor(220, 220, 220); pdf.rect(rx, y, qtyW, rowH, 'FD');
       const colTotal = retailers.reduce((s, ret) => s + (orderMap[ret.phone]?.items[key] || 0), 0);
       if (colTotal > 0) { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(colTotal >= 1000 ? 8 : colTotal >= 100 ? 10 : qtyFontSize); pdf.text(`${colTotal}`, rx + qtyW / 2, y + 7, { align: 'center' }); }
       rx += qtyW;
     });
-    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, totalW, rowH, 'FD');
+    pdf.setFillColor(220, 220, 220); pdf.rect(rx, y, totalW, rowH, 'FD');
     rx += totalW;
-    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, paidW, rowH, 'FD');
+    pdf.setFillColor(220, 220, 220); pdf.rect(rx, y, paidW, rowH, 'FD');
     rx += paidW;
-    pdf.setFillColor(245, 245, 245); pdf.rect(rx, y, signW, rowH, 'FD');
+    pdf.setFillColor(220, 220, 220); pdf.rect(rx, y, signW, rowH, 'FD');
     y += rowH;
 
     for (let b = 0; b < 5; b++) {
       if (y + rowH > h - 8) { pdf.addPage(); pageNum++; y = m; pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); pdf.setTextColor(130, 130, 130); pdf.text(`Pg ${pageNum}`, w - m, y + 3, { align: 'right' }); pdf.setTextColor(0, 0, 0); y += 4; drawHeader(); }
-      pdf.setDrawColor(180, 180, 180); pdf.setLineWidth(0.1); let rx = m;
+      pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.3); let rx = m;
       pdf.setFillColor(255, 255, 255); pdf.rect(rx, y, siW, rowH, 'FD');
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(0, 0, 0);
       pdf.text(`${retailers.length + b + 1}`, rx + siW / 2, y + 5.5, { align: 'center' }); rx += siW;
@@ -518,7 +518,7 @@ export default function DailyLedger() {
     pdf.text('Driver Name: ________________________________', m, y);
     pdf.text('Total Collected: Rs. ________________', w / 2 + 10, y);
     y += 12; pdf.text('Driver Sign: ________________________________', m, y);
-    y += 8; pdf.setFontSize(7); pdf.setTextColor(150, 150, 150);
+    y += 8; pdf.setFontSize(7); pdf.setTextColor(80, 80, 80);
     pdf.text(`Lucy Garden | ${areaName} | ${dateStr} | Generated: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, w / 2, y, { align: 'center' });
     pdf.save(`LG_${areaName.replace(/\s/g, '_')}_${dateStr.replace(/[\s,]/g, '')}.pdf`);
   };
@@ -576,17 +576,17 @@ export default function DailyLedger() {
       if (y + linesNeeded > h - 15) { pdf.addPage(); y = m; }
 
       // Retailer header
-      pdf.setFillColor(248, 250, 252); pdf.rect(m, y, w - m * 2, 9, 'F');
+      pdf.setFillColor(225, 225, 225); pdf.rect(m, y, w - m * 2, 9, 'F');
       const sRetName = `${i + 1}. ${(ret.name || '-').slice(0, 30)}`;
       drawText(pdf, sRetName, m + 3, y + 6, { bold: true, size: 10, color: [15, 23, 42] });
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(50, 50, 50);
       pdf.text(ret.phone || '', w - m - 3, y + 6, { align: 'right' });
       y += 11;
 
       // Items by group
       groupedItems.forEach(g => {
         const gLabel = g.group;
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(50, 50, 50);
         pdf.text(gLabel, m + 5, y + 3); y += 5;
         g.items.forEach(item => {
           if (y + 5 > h - 15) { pdf.addPage(); y = m; }
@@ -594,14 +594,14 @@ export default function DailyLedger() {
           pdf.text(item.label || item.name, m + 10, y + 3);
           pdf.setFont('helvetica', 'bold');
           pdf.text(`${item.qty}`, m + 80, y + 3);
-          pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
+          pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(50, 50, 50);
           pdf.text(`Rs.${(item.qty * item.price).toFixed(0)}`, w - m - 3, y + 3, { align: 'right' });
           y += 5;
         });
       });
 
       // Retailer total
-      pdf.setDrawColor(226, 232, 240); pdf.setLineWidth(0.2); pdf.line(m + 5, y, w - m - 3, y);
+      pdf.setDrawColor(100, 100, 100); pdf.setLineWidth(0.3); pdf.line(m + 5, y, w - m - 3, y);
       y += 4;
       pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(15, 23, 42);
       pdf.text(`Total: Rs.${retailerTotal.toFixed(0)}`, w - m - 3, y, { align: 'right' });
@@ -611,7 +611,7 @@ export default function DailyLedger() {
     // Product-wise Total
     if (y + 20 > h - 15) { pdf.addPage(); y = m; }
     y += 4;
-    pdf.setFillColor(240, 240, 240); pdf.rect(m, y, w - m * 2, 8, 'F');
+    pdf.setFillColor(215, 215, 215); pdf.rect(m, y, w - m * 2, 8, 'F');
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(15, 23, 42);
     pdf.text('PRODUCT TOTALS', m + 3, y + 5.5);
     y += 10;
@@ -624,7 +624,7 @@ export default function DailyLedger() {
         drawText(pdf, product?.label || key, m + 5, y + 3, { size: 9 });
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(15, 23, 42);
         pdf.text(`${total}`, m + 90, y + 3);
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(100, 116, 139);
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(50, 50, 50);
         pdf.text(`Rs.${(total * (priceMap[key] || 0)).toFixed(0)}`, w - m - 3, y + 3, { align: 'right' });
         y += 5;
       }
@@ -637,12 +637,12 @@ export default function DailyLedger() {
     y += 7;
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(15, 23, 42);
     pdf.text(`GRAND TOTAL: Rs.${grandTotal.toFixed(0)}`, m, y);
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(100, 116, 139);
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(50, 50, 50);
     pdf.text(`${seasonalRetailers.length} retailers  |  ${ALL_SEASONAL_KEYS.reduce((s, k) => s + retailers.reduce((t, r) => t + (orderMap[r.phone]?.items[k] || 0), 0), 0)} total items`, w - m, y, { align: 'right' });
 
     // Footer
     y = h - 8;
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(150, 150, 150);
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(80, 80, 80);
     pdf.text(`Lucy Garden | Seasonal | ${areaName} | ${dateStr} | Generated: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, w / 2, y, { align: 'center' });
     pdf.save(`LG_Seasonal_${areaName.replace(/\s/g, '_')}_${dateStr.replace(/[\s,]/g, '')}.pdf`);
   };
@@ -1261,4 +1261,5 @@ export default function DailyLedger() {
     </div>
   );
 }
+
 
