@@ -55,9 +55,32 @@ export const cachedGetDoc = async (docRef, ttl = CACHE_TTL) => {
   return snap;
 };
 
+// cachedGetDocs - collection query cache (stale-while-revalidate)
+// Returns cached data instantly, fetches fresh in background
+export const cachedGetDocs = async (queryRef, cacheKey, ttl = CACHE_TTL) => {
+  const cached = _cache[cacheKey];
+  if (cached && Date.now() - cached.ts < ttl) return cached.snap;
+  const snap = await _getDocs(queryRef);
+  _cache[cacheKey] = { snap, ts: Date.now() };
+  return snap;
+};
+
+// useLiveData - stale-while-revalidate hook
+// Shows cached data instantly, revalidates in background
+export const getCachedDocs = (cacheKey) => {
+  const cached = _cache[cacheKey];
+  if (cached) return cached.snap;
+  return null;
+};
+
 export const invalidateCache = (path) => {
   if (path) delete _cache[path];
   else Object.keys(_cache).forEach(k => delete _cache[k]);
+};
+
+// Invalidate all cache keys matching a prefix
+export const invalidateCachePrefix = (prefix) => {
+  Object.keys(_cache).filter(k => k.startsWith(prefix)).forEach(k => delete _cache[k]);
 };
 
 export {

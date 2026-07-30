@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Users, Package, IndianRupee, CheckCircle2, AlertTriangle, ShoppingBag, BookOpen, MessageCircle, Download, Plus, ClipboardList } from 'lucide-react';
-import { db, collection, getDocs, query, where, doc, cachedGetDoc } from '../../services/firebase';
+import { db, collection, getDocs, query, where, doc, cachedGetDoc, cachedGetDocs } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { DashboardSkeleton } from '../../components/LoadingSkeleton';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'retailer')));
+        const usersSnap = await cachedGetDocs(query(collection(db, 'users'), where('role', '==', 'retailer')), 'dash_users', 5 * 60 * 1000);
         const retailerCount = usersSnap.size;
 
         const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -35,7 +35,7 @@ export default function Dashboard() {
 
         const balSnap = await getDocs(collection(db, 'retailer_balances'));
         // Calculate actual dues from ledger (source of truth)
-        const allLedgerSnap = await getDocs(collection(db, 'ledger'));
+        const allLedgerSnap = await cachedGetDocs(collection(db, 'ledger'), 'dash_ledger', 3 * 60 * 1000);
         const allLedgerEntries = allLedgerSnap.docs.map(d => d.data());
         const dueByRetailer = {};
         allLedgerEntries.forEach(e => {
@@ -515,3 +515,6 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
+

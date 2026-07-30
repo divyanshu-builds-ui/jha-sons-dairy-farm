@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ShoppingCart, AlertTriangle, Clock, Plus, Minus, X, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db, doc, getDoc, collection, getDocs, query, where, cachedGetDoc } from '../../services/firebase';
+import { db, doc, getDoc, collection, getDocs, query, where, cachedGetDoc, cachedGetDocs } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { OrderSkeleton } from '../../components/LoadingSkeleton';
 import { useFlags } from '../../context/FeatureFlags';
@@ -36,7 +36,7 @@ export default function PlaceOrder() {
         setBalance(due);
 
         // Products — fresh every page load (no cache, prices must be latest)
-        const prodSnap = await getDocs(collection(db, 'products'));
+        const prodSnap = await cachedGetDocs(collection(db, 'products'), 'products_all', 10 * 60 * 1000);
         const prods = prodSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.active !== false);
         setProducts(prods);
 
@@ -301,3 +301,4 @@ export default function PlaceOrder() {
     </div>
   );
 }
+

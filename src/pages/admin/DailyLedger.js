@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, RefreshCw, Printer, X, Check, Download, Undo2, ChevronLeft, ChevronRight, CheckCircle2, XCircle, RotateCcw, Plus, Trash2 } from 'lucide-react';
-import { db, collection, getDocs, setDoc, addDoc, doc, getDoc, updateDoc, query, where } from '../../services/firebase';
+import { db, collection, getDocs, setDoc, addDoc, doc, getDoc, updateDoc, query, where, cachedGetDocs, cachedGetDoc } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { jsPDF } from 'jspdf';
 import { registerHindiFont, setFont, hasHindi, drawText } from '../../utils/pdfHelper';
@@ -63,7 +63,7 @@ export default function DailyLedger() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const prodSnap = await getDocs(collection(db, 'products'));
+      const prodSnap = await cachedGetDocs(collection(db, 'products'), 'products_all', 10 * 60 * 1000);
       setProducts(prodSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.active !== false));
       const groupDoc = await getDoc(doc(db, 'settings', 'productGroups'));
       if (groupDoc.exists() && groupDoc.data().daily) {
@@ -1261,3 +1261,4 @@ export default function DailyLedger() {
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Check, X, ChevronLeft, ChevronRight, RefreshCw, Printer, Download, IndianRupee, AlertTriangle, Edit3, Trash2 } from 'lucide-react';
-import { db, collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc, query, where } from '../../services/firebase';
+import { db, collection, getDocs, addDoc, deleteDoc, updateDoc, doc, getDoc, setDoc, query, where, cachedGetDocs } from '../../services/firebase';
 import { formatPrice } from '../../utils/price';
 import { TableSkeleton } from '../../components/LoadingSkeleton';
 import { useConfirm } from '../../components/ConfirmModal';
@@ -83,7 +83,7 @@ export default function Ledger() {
     try {
       const [retSnap, prodSnap, areasDoc, groupDoc, ledgerSnap] = await Promise.all([
         getDocs(query(collection(db, 'users'), where('role', '==', 'retailer'))),
-        getDocs(collection(db, 'products')),
+        cachedGetDocs(collection(db, 'products'), 'products_all', 10 * 60 * 1000),
         getDoc(doc(db, 'settings', 'areas')),
         getDoc(doc(db, 'settings', 'productGroups')),
         getDocs(collection(db, 'ledger'))
@@ -603,3 +603,6 @@ export default function Ledger() {
     </div>
   );
 }
+
+
+
