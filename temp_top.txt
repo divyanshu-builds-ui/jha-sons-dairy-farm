@@ -24,20 +24,6 @@ const readPhoneLock = () => {
 };
 const writePhoneLock = (until, count, tier) => localStorage.setItem('lg_phone_lock', JSON.stringify({ until, count, tier }));
 const clearPhoneLock = () => localStorage.removeItem('lg_phone_lock');
-
-// Phone verification cache - valid number ka result 5 min cache karo, no repeat DB call
-const PHONE_CACHE_TTL = 5 * 60 * 1000; // 5 min
-const getPhoneCache = (ph) => {
-  try {
-    const raw = localStorage.getItem('lg_phone_cache');
-    if (!raw) return null;
-    const d = JSON.parse(raw);
-    if (d.phone !== ph || Date.now() - d.ts > PHONE_CACHE_TTL) { localStorage.removeItem('lg_phone_cache'); return null; }
-    return d;
-  } catch { return null; }
-};
-const setPhoneCache = (ph) => localStorage.setItem('lg_phone_cache', JSON.stringify({ phone: ph, ts: Date.now() }));
-const clearPhoneCache = () => localStorage.removeItem('lg_phone_cache');
 const getRecent = () => { try { return JSON.parse(localStorage.getItem('lg_recent_phones') || '[]'); } catch { return []; } };
 const saveRecent = (ph, name) => {
   try {
@@ -129,8 +115,6 @@ export default function Login({ onLogin }) {
     if (phoneLockUntil > Date.now()) { setError(`Too many attempts. Wait ${fmtTime(phoneCountdown)}.`); return; }
     setLoading(true); setError('');
     if (phone === DEV_PHONE) { setLoading(false); setPhoneAttempts(0); clearPhoneLock(); setStep('pin'); return; }
-    // Check cache first - agar same number 5 min mein verify hua hai toh no DB call
-    if (getPhoneCache(phone)) { setLoading(false); setPhoneAttempts(0); clearPhoneLock(); setStep('pin'); return; }
     try {
       const snap = await getDoc(doc(db, 'users', phone));
       if (!snap.exists()) {
@@ -148,8 +132,6 @@ export default function Login({ onLogin }) {
         }
         setLoading(false); return;
       }
-      // Valid number found â†’ cache it + reset phone attempts
-      setPhoneCache(phone);
       setPhoneAttempts(0); clearPhoneLock(); setStep('pin');
     } catch { setError('Network error. Try again.'); }
     setLoading(false);
@@ -182,8 +164,6 @@ export default function Login({ onLogin }) {
 
   const handleWrongPin = async () => {
     const newAttempts = pinAttempts + 1; setPinAttempts(newAttempts); setPin(''); setLoading(false);
-    // Wrong PIN - clear phone cache for security
-    clearPhoneCache();
     if (newAttempts >= PIN_MAX) {
       const newTier = pinLockTier + 1; setPinLockTier(newTier);
       const duration = PIN_TIERS[Math.min(newTier - 1, PIN_TIERS.length - 1)];
@@ -199,7 +179,7 @@ export default function Login({ onLogin }) {
     } else {
       const left = PIN_MAX - newAttempts;
       try { await updateDoc(doc(db, 'users', phone), { loginAttempts: newAttempts, lockTier: pinLockTier }); } catch {}
-      setError(`Incorrect PIN â€” ${left} attempt${left === 1 ? '' : 's'} left`);
+      setError(`Incorrect PIN ƒ?" ${left} attempt${left === 1 ? '' : 's'} left`);
     }
   };
 
@@ -238,30 +218,45 @@ export default function Login({ onLogin }) {
 
   const terminateAndLogin = async () => { setLoading(true); await createSession(pendingUser); setLoading(false); };
 
+  // Mobile numpad - centered
   const NumPad = ({ onPress, disabled }) => {
     const t = React.useRef(null);
     return (
       <div className="grid grid-cols-3 gap-3 mt-6 max-w-[280px] mx-auto">
-        {[1,2,3,4,5,6,7,8,9,'',0,'back'].map((k, i) => (
+        {[1,2,3,4,5,6,7,8,9,'',0,'ƒO®'].map((k, i) => (
           <motion.button key={i} type="button"
             whileTap={k !== '' ? { scale: 0.84 } : {}}
             transition={{ duration: 0.07 }}
             onClick={() => k !== '' && !disabled && onPress(k)}
-            onPointerDown={() => { if (k === 'back' && !disabled) t.current = setTimeout(() => onPress('CLEAR'), 500); }}
+            onPointerDown={() => { if (k === 'ƒO®' && !disabled) t.current = setTimeout(() => onPress('CLEAR'), 500); }}
             onPointerUp={() => clearTimeout(t.current)}
             onPointerLeave={() => clearTimeout(t.current)}
             disabled={disabled || k === ''}
             className={`h-14 rounded-2xl font-bold text-xl select-none transition-colors
               ${k === '' ? 'invisible pointer-events-none'
-                : k === 'back' ? 'bg-royal-50 text-royal-600 active:bg-royal-100 text-base'
+                : k === 'ƒO®' ? 'bg-royal-50 text-royal-600 active:bg-royal-100'
                 : 'bg-white text-gray-900 shadow-sm border border-gray-100 active:bg-gray-50'}
               ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}>
-            {k === 'back' ? 'âŒ«' : k}
+            {k}
           </motion.button>
         ))}
       </div>
     );
   };
+
+  const ErrorLine = ({ show, isLock, text }) => (
+    <div className="h-5 flex items-center mt-2">
+      <AnimatePresence>
+        {show && (
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className={`text-xs font-medium flex items-center gap-1.5 ${isLock ? 'text-amber-500' : 'text-red-500'}`}>
+            {isLock ? <Lock size={10} className="shrink-0" /> : <AlertCircle size={10} className="shrink-0" />}
+            {text}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 
   const isPhoneLocked = phoneLockUntil === -1 || phoneLockUntil > Date.now();
   const isPinLocked = pinLockUntil > Date.now() || pinBlocked;
@@ -270,7 +265,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="min-h-screen flex">
 
-      {/* LEFT PANEL - desktop only */}
+      {/* ƒ"?ƒ"? LEFT PANEL - desktop only ƒ"?ƒ"? */}
       <div className="hidden lg:flex lg:w-[44%] xl:w-[40%] bg-[#0f172a] flex-col justify-between p-14 shrink-0 min-h-screen">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
           className="flex items-center gap-3">
@@ -280,6 +275,7 @@ export default function Login({ onLogin }) {
             <p className="text-white/30 text-xs">Madhubani, Bihar</p>
           </div>
         </motion.div>
+
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <h2 className="text-[42px] xl:text-[48px] font-black text-white leading-[1.1] mb-5">
             Simple.<br />Secure.<br />
@@ -289,29 +285,28 @@ export default function Login({ onLogin }) {
             Sign in to access your account and manage your records.
           </p>
         </motion.div>
+
         <p className="text-white/15 text-[10px]">
-          v{APP_CONFIG.version} &middot; Made with &#9749; &amp; &#10084;&#65039; by{' '}
+          v{APP_CONFIG.version} Aú Made with ƒ~ & ƒ?‹,? by{' '}
           <a href="https://portfolio-divyanshu-git.vercel.app" target="_blank" rel="noreferrer"
             className="font-bold text-white/30 hover:text-white/50 transition-colors">Divyanshu Gupta</a>
         </p>
       </div>
 
-      {/* RIGHT PANEL */}
+      {/* ƒ"?ƒ"? RIGHT PANEL ƒ"?ƒ"? */}
       <div className="flex-1 flex flex-col min-h-screen">
 
-        {/* mobile: dark header - only on phone step */}
-        {step === 'phone' && (
-          <div className="lg:hidden bg-[#0f172a] px-6 pt-14 pb-10 text-center">
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-              <img src={logo} alt="Lucy Garden" className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 border border-white/10 shadow-xl" />
-              <p className="text-white font-black text-lg">Lucy Garden</p>
-              <p className="text-white/30 text-xs mt-0.5">Madhubani, Bihar</p>
-            </motion.div>
-          </div>
-        )}
+        {/* mobile: dark header */}
+        <div className="lg:hidden bg-[#0f172a] px-6 pt-14 pb-10 text-center">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+            <img src={logo} alt="Lucy Garden" className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3 border border-white/10 shadow-xl" />
+            <p className="text-white font-black text-lg">Lucy Garden</p>
+            <p className="text-white/30 text-xs mt-0.5">Madhubani, Bihar</p>
+          </motion.div>
+        </div>
 
         {/* form area */}
-        <div className="flex-1 bg-[#f8fafc] lg:bg-white flex items-center justify-center px-6 py-10 lg:px-14">
+        <div className="flex-1 bg-[#f8fafc] lg:bg-white flex items-center justify-center px-6 py-8 lg:px-14">
           <div className="w-full max-w-[360px]">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <AnimatePresence mode="wait">
@@ -319,7 +314,10 @@ export default function Login({ onLogin }) {
                 {/* PHONE STEP */}
                 {step === 'phone' && (
                   <motion.div key="phone" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
-                    <div className="mb-8">
+                    <div className="mb-7">
+                      <p className="text-[10px] font-bold text-royal-500 tracking-[0.18em] uppercase mb-2 flex items-center gap-1.5">
+                        <ShieldCheck size={10} /> Secure Login
+                      </p>
                       <p className="text-[10px] font-bold text-royal-500 tracking-[0.18em] uppercase mb-2 flex items-center gap-1.5">
                         <ShieldCheck size={10} /> Secure Login
                       </p>
@@ -327,6 +325,7 @@ export default function Login({ onLogin }) {
                       <p className="text-sm text-gray-400 mt-1">Enter your registered mobile number</p>
                     </div>
 
+                    {/* recent */}
                     {phone === '' && recent.length > 0 && (
                       <div className="mb-6">
                         <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest mb-2">Recent</p>
@@ -340,7 +339,7 @@ export default function Login({ onLogin }) {
                               </div>
                               <div className="flex-1 text-left min-w-0">
                                 {r.name && <p className="text-sm font-bold text-gray-800 truncate">{r.name}</p>}
-                                <p className="text-[11px] font-mono text-gray-400">+91 &bull;&bull;&bull;&bull;&bull; {r.phone.slice(-5)}</p>
+                                <p className="text-[11px] font-mono text-gray-400">+91 ƒ?›ƒ?›ƒ?›ƒ?›ƒ?› {r.phone.slice(-5)}</p>
                               </div>
                               <ArrowRight size={12} className="text-gray-300 shrink-0" />
                             </motion.button>
@@ -354,9 +353,10 @@ export default function Login({ onLogin }) {
                       </div>
                     )}
 
+                    {/* phone input */}
                     <motion.div
                       animate={error ? { x: [0, -5, 5, -3, 3, 0] } : {}}
-                      transition={{ duration: 0.2 }}
+                      transition={{ duration: 0.25 }}
                       className={`flex items-center gap-3 rounded-xl px-4 py-3.5 border-2 bg-white transition-colors
                         ${error ? 'border-red-400' : phone.length > 0 ? 'border-royal-500' : 'border-gray-200'}`}>
                       <span className="text-sm font-bold text-gray-400 shrink-0">+91</span>
@@ -367,28 +367,23 @@ export default function Login({ onLogin }) {
                       {phone.length > 0 && <span className="text-[10px] text-gray-300 shrink-0 font-mono">{phone.length}/10</span>}
                     </motion.div>
 
-                    <div className="h-5 flex items-center mt-1.5">
-                      <AnimatePresence>
-                        {(error || phoneCountdown > 0 || phoneLockUntil === -1) && (
-                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className={`text-xs font-medium flex items-center gap-1.5 ${phoneLockUntil === -1 || phoneCountdown > 0 ? 'text-amber-500' : 'text-red-500'}`}>
-                            {phoneLockUntil === -1 || phoneCountdown > 0 ? <Lock size={10} className="shrink-0" /> : <AlertCircle size={10} className="shrink-0" />}
-                            {phoneLockUntil === -1 ? 'Device blocked. Contact admin.' : phoneCountdown > 0 ? `Locked Â· ${fmtTime(phoneCountdown)}` : error}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                    <ErrorLine
+                      show={!!(error || phoneCountdown > 0 || phoneLockUntil === -1)}
+                      isLock={phoneLockUntil === -1 || phoneCountdown > 0}
+                      text={phoneLockUntil === -1 ? 'Device blocked. Contact admin.' : phoneCountdown > 0 ? `Locked Aú ${fmtTime(phoneCountdown)}` : error}
+                    />
 
+                    {/* numpad - mobile only */}
                     <div className="lg:hidden">
                       <NumPad disabled={isPhoneLocked} onPress={(k) => {
                         setError('');
                         if (k === 'CLEAR') setPhone('');
-                        else if (k === 'back') setPhone(p => p.slice(0, -1));
+                        else if (k === 'ƒO®') setPhone(p => p.slice(0, -1));
                         else if (phone.length < 10) setPhone(p => p + k);
                       }} />
                     </div>
 
-                    <p className="hidden lg:block text-xs text-gray-300 mt-3">Type on keyboard &middot; Enter to continue</p>
+                    <p className="hidden lg:block text-xs text-gray-300 mt-3">Type on keyboard Aú Enter to continue</p>
 
                     <motion.button whileTap={{ scale: 0.97 }} onClick={handlePhoneSubmit}
                       disabled={loading || phone.length < 10 || isPhoneLocked}
@@ -400,118 +395,6 @@ export default function Login({ onLogin }) {
                         ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.75 }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
                         : <>Continue <ArrowRight size={15} /></>}
                     </motion.button>
-
-                    <p className="mt-8 text-[10px] text-gray-300 text-center lg:hidden">
-                      v{APP_CONFIG.version} &middot; Made with &#9749; &amp; &#10084;&#65039; by{' '}
-                      <a href="https://portfolio-divyanshu-git.vercel.app" target="_blank" rel="noreferrer"
-                        className="font-bold text-gray-400 hover:text-royal-600 transition-colors">Divyanshu Gupta</a>
-                    </p>
                   </motion.div>
                 )}
 
-                {/* PIN STEP */}
-                {step === 'pin' && (
-                  <motion.div key="pin" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }}>
-
-                    {/* back */}
-                    <button onClick={() => { setStep('phone'); setPin(''); setError(''); }}
-                      className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-royal-600 transition-colors mb-10">
-                      <ChevronLeft size={13} /> Change number
-                    </button>
-
-                    {/* heading */}
-                    <div className="text-center mb-10">
-                      <h2 className="text-2xl font-black text-gray-900">Enter PIN</h2>
-                      <p className="text-sm font-mono text-gray-400 mt-2">+91 {phone.slice(0,5)} {phone.slice(5)}</p>
-                    </div>
-
-                    {/* dots - large, centered */}
-                    <motion.div
-                      animate={error ? { x: [0, -8, 8, -5, 5, 0] } : {}}
-                      transition={{ duration: 0.18 }}
-                      className="flex justify-center gap-6 mb-3">
-                      {[0,1,2,3].map(i => (
-                        <motion.div key={i}
-                          animate={pin.length > i ? { scale: [1, 1.3, 1] } : { scale: 1 }}
-                          transition={{ duration: 0.12 }}
-                          className={`w-5 h-5 rounded-full transition-colors duration-100
-                            ${pin.length > i
-                              ? error ? 'bg-red-500' : 'bg-royal-600 shadow-lg shadow-royal-500/30'
-                              : 'bg-gray-200'}`} />
-                      ))}
-                    </motion.div>
-
-                    {/* error - fixed height below dots */}
-                    <div className="h-5 flex items-center justify-center mb-2">
-                      <AnimatePresence>
-                        {(error || pinCountdown > 0 || pinBlocked) && (
-                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            transition={{ duration: 0.12 }}
-                            className={`text-xs font-medium flex items-center gap-1.5 ${pinBlocked || pinCountdown > 0 ? 'text-amber-500' : 'text-red-500'}`}>
-                            {pinBlocked || pinCountdown > 0 ? <Lock size={10} className="shrink-0" /> : <AlertCircle size={10} className="shrink-0" />}
-                            {pinBlocked ? 'Account blocked. Contact admin.' : pinCountdown > 0 ? `Locked Â· ${fmtTime(pinCountdown)}` : error}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* numpad - mobile only */}
-                    <div className="lg:hidden">
-                      <NumPad disabled={isPinLocked} onPress={(k) => {
-                        setError('');
-                        if (k === 'CLEAR') setPin('');
-                        else if (k === 'back') setPin(p => p.slice(0, -1));
-                        else if (pin.length < 4) setPin(p => p + k);
-                      }} />
-                    </div>
-
-                    {/* desktop: hint + verify button */}
-                    <p className="hidden lg:block text-xs text-gray-300 mt-6 text-center">Type PIN on keyboard &middot; Enter to verify</p>
-
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={handlePinSubmit}
-                      disabled={loading || pin.length < 4 || isPinLocked}
-                      className={`w-full mt-6 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all
-                        ${pin.length === 4 && !isPinLocked
-                          ? 'bg-royal-700 text-white shadow-md shadow-royal-700/20 hover:bg-royal-600'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                      {loading
-                        ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.75 }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                        : <>Verify <ArrowRight size={15} /></>}
-                    </motion.button>
-                  </motion.div>
-                )}
-
-                {/* SESSION CONFLICT */}
-                {step === 'conflict' && (
-                  <motion.div key="conflict" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                    <div className="text-center mb-8">
-                      <div className="w-12 h-12 bg-amber-50 border border-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <AlertTriangle size={22} className="text-amber-500" />
-                      </div>
-                      <h2 className="text-xl font-black text-gray-900">Active Session</h2>
-                      <p className="text-sm text-gray-400 mt-2 leading-relaxed">
-                        This account is already logged in on another device. Terminate that session to continue here.
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      <motion.button whileTap={{ scale: 0.97 }}
-                        onClick={() => { setStep('phone'); setPin(''); setError(''); }}
-                        className="flex-1 py-3.5 rounded-xl font-bold text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
-                        Cancel
-                      </motion.button>
-                      <motion.button whileTap={{ scale: 0.97 }} onClick={terminateAndLogin} disabled={loading}
-                        className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50">
-                        {loading ? 'Please wait...' : 'Terminate & Login'}
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                )}
-
-              </AnimatePresence>
-            </motion.div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

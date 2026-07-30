@@ -102,7 +102,7 @@ export default function AdminLayout() {
     setMoreOpen(false);
     await new Promise(r => setTimeout(r, 300)); // Wait for bottom sheet close animation
     const ok = await confirm({ title: 'Logout', message: 'Are you sure you want to logout from admin panel?', confirmText: 'Logout', type: 'logout' });
-    if (ok) { const phone = sessionStorage.getItem('lg_active_phone'); if (phone) localStorage.removeItem(`lg_user_${phone}`); localStorage.removeItem('lg_user'); sessionStorage.removeItem('lg_active_phone'); window.location.reload(); }
+    if (ok) { const phone = sessionStorage.getItem('lg_active_phone'); if (phone) { localStorage.removeItem(`lg_user_${phone}`); localStorage.removeItem(`lg_last_verify_${phone}`); } localStorage.removeItem('lg_user'); sessionStorage.removeItem('lg_active_phone'); window.location.reload(); }
   };
 
   const pageTitle = () => {
@@ -337,3 +337,4 @@ export default function AdminLayout() {
     </div>
   );
 }
+

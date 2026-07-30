@@ -67,7 +67,7 @@ export default function AppFooter({ type = 'retailer' }) {
             {/* Bottom */}
             <div className="mt-6 pt-4 border-t border-royal-100/30 dark:border-[#222222] flex items-center justify-between">
               <p className="text-[10px] text-gray-400 dark:text-gray-500">&copy; {year} {APP_CONFIG.appName}. All rights reserved.</p>
-              <p className="text-[10px] text-gray-300 dark:text-gray-600">v{APP_CONFIG.version}</p>
+                <p className="text-[10px] text-gray-300 dark:text-gray-600">Made with ☕ & ❤️ by <a href={APP_CONFIG.developer.portfolio} target="_blank" rel="noreferrer" className="font-bold text-gray-500 dark:text-gray-400 hover:text-royal-600 transition-colors">{APP_CONFIG.developer.name}</a></p>
             </div>
           </div>
         </div>
@@ -77,8 +77,8 @@ export default function AppFooter({ type = 'retailer' }) {
       <div className="lg:hidden py-5 pb-24">
         <div className="flex flex-col items-center gap-2">
           <a href={APP_CONFIG.developer.portfolio} target="_blank" rel="noreferrer"
-            className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-            Developed by {APP_CONFIG.developer.name}
+            className="text-[11px] text-gray-400 dark:text-gray-500">
+            Made with ☕ & ❤️ by <span className="font-bold text-gray-600 dark:text-gray-300">{APP_CONFIG.developer.name}</span>
           </a>
           <p className="text-[9px] text-gray-300 dark:text-gray-600">&copy; {year} {APP_CONFIG.appName} &middot; v{APP_CONFIG.version}</p>
         </div>

@@ -113,7 +113,7 @@ export default function RetailerLayout() {
     setMoreOpen(false);
     await new Promise(r => setTimeout(r, 300));
     const ok = await confirm({ title: 'Logout', message: 'Are you sure you want to logout?', confirmText: 'Logout', type: 'logout' });
-    if (ok) { const phone = sessionStorage.getItem('lg_active_phone'); if (phone) localStorage.removeItem(`lg_user_${phone}`); localStorage.removeItem('lg_user'); sessionStorage.removeItem('lg_active_phone'); window.location.reload(); }
+    if (ok) { const phone = sessionStorage.getItem('lg_active_phone'); if (phone) { localStorage.removeItem(`lg_user_${phone}`); localStorage.removeItem(`lg_last_verify_${phone}`); } localStorage.removeItem('lg_user'); sessionStorage.removeItem('lg_active_phone'); window.location.reload(); }
   };
 
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -318,3 +318,4 @@ export default function RetailerLayout() {
     </div>
   );
 }
+

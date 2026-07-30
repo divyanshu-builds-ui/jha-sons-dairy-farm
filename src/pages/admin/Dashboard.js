@@ -19,7 +19,6 @@ export default function Dashboard() {
   const [productDemand, setProductDemand] = useState([]);
   const [overdueCount, setOverdueCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [fabOpen, setFabOpen] = useState(false);
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -512,33 +511,6 @@ export default function Dashboard() {
             )}
           </div>
         </motion.div>
-      </div>
-
-      {/* Quick Actions FAB — Mobile Only */}
-      <div className="fixed bottom-24 right-4 z-40 lg:hidden">
-        <AnimatePresence>
-          {fabOpen && (
-            <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.9 }}
-              className="absolute bottom-16 right-0 bg-white dark:bg-[#111111] rounded-2xl border border-gray-200 dark:border-[#222222] shadow-2xl p-2 min-w-[180px]">
-              {[
-                { label: 'Place Order', icon: ClipboardList, to: '/admin/place-order', color: 'text-royal-600' },
-                { label: 'Daily Sheet', icon: ShoppingBag, to: '/admin/daily-ledger', color: 'text-amber-600' },
-                { label: 'Ledger', icon: BookOpen, to: '/admin/ledger', color: 'text-blue-600' },
-              ].map((item, i) => (
-                <motion.button key={item.to} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                  onClick={() => { setFabOpen(false); navigate(item.to); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors">
-                  <item.icon size={16} className={item.color} />
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{item.label}</span>
-                </motion.button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setFabOpen(!fabOpen)}
-          className={`w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center transition-all ${fabOpen ? 'bg-gray-800 dark:bg-white rotate-45' : 'bg-gradient-to-br from-royal-600 to-mint-600 shadow-royal-600/30'}`}>
-          <Plus size={24} className={fabOpen ? 'text-white dark:text-gray-800' : 'text-white'} />
-        </motion.button>
       </div>
     </div>
   );

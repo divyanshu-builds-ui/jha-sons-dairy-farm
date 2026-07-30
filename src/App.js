@@ -16,6 +16,55 @@ import PaymentBlock from './components/PaymentBlock';
 
 import Login from './pages/Login';
 
+// Login success animation overlay
+function LoginSuccess({ name, role }) {
+  return (
+    <div className="fixed inset-0 z-[999] bg-[#0f172a] flex flex-col items-center justify-center">
+      <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+        className="flex flex-col items-center gap-8">
+        {/* Check circle */}
+        <div className="relative">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: [0, 1.15, 1] }}
+            transition={{ duration: 0.5, times: [0, 0.7, 1] }}
+            className="w-24 h-24 rounded-full bg-royal-600 flex items-center justify-center shadow-2xl shadow-royal-600/40">
+            <motion.svg
+              width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <motion.path d="M5 13l4 4L19 7"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }} />
+            </motion.svg>
+          </motion.div>
+          {/* Ripple */}
+          <motion.div
+            initial={{ scale: 1, opacity: 0.4 }}
+            animate={{ scale: 2.4, opacity: 0 }}
+            transition={{ delay: 0.2, duration: 0.9 }}
+            className="absolute inset-0 rounded-full bg-royal-500" />
+        </div>
+        {/* Text */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="text-center px-8">
+          <p className="text-white font-black text-2xl leading-snug">
+            {name ? `Welcome, ${name}` : 'Welcome back'}
+          </p>
+          <p className="text-white/30 text-sm mt-3">
+            {role === 'admin' ? 'Admin Panel' : 'Signing you in...'}
+          </p>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
 // Lazy load pages for faster initial load
 const RetailerHome = lazy(() => import('./pages/retailer/Home'));
 const PlaceOrder = lazy(() => import('./pages/retailer/PlaceOrder'));
@@ -73,7 +122,7 @@ import RetailerLayout from './components/layout/RetailerLayout';
 import AdminLayout from './components/layout/AdminLayout';
 import DeveloperLayout from './components/layout/DeveloperLayout';
 
-import { LazyMotion, domAnimation, m } from 'framer-motion';
+import { LazyMotion, domAnimation, m, motion } from 'framer-motion';
 
 // Init global error tracking
 initErrorTracking();
@@ -160,6 +209,7 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [splashDone, setSplashDone] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(null); // { name, role }
   const [maintenance, setMaintenance] = useState(false);
   const [siteBlock, setSiteBlock] = useState(null);
 
@@ -212,6 +262,13 @@ function AppContent() {
         setUser(parsed); setLoading(false); return;
       }
 
+      // Session verify cache - 1 hour tak no DB call (saves reads on rapid login/logout)
+      const lastVerify = parseInt(localStorage.getItem('lg_last_verify_' + parsed.phone) || '0');
+      const VERIFY_TTL = 60 * 60 * 1000; // 1 hour
+      if (Date.now() - lastVerify < VERIFY_TTL && parsed.sessionExpiry && new Date(parsed.sessionExpiry) > new Date()) {
+        sessionStorage.setItem('lg_active_phone', parsed.phone);
+        setUser(parsed); setLoading(false); return;
+      }
       const userDoc = await getDoc(doc(db, 'users', parsed.phone));
       if (!userDoc.exists()) { localStorage.removeItem(`lg_user_${parsed.phone}`); localStorage.removeItem('lg_user'); sessionStorage.removeItem('lg_active_phone'); setLoading(false); return; }
 
@@ -319,8 +376,13 @@ function AppContent() {
     return () => clearInterval(id);
   }, [user]);
 
-  const handleLogin = useCallback(async (u) => {
-    setUser(u);
+  const handleLogin = useCallback(async (u) => { const lastLoginTime = parseInt(sessionStorage.getItem('lg_last_login_time') || '0'); if (Date.now() - lastLoginTime < 3000) return; sessionStorage.setItem('lg_last_login_time', String(Date.now()));
+    // Show success animation first, then set user
+    setLoginSuccess({ name: u.name || '', role: u.role || 'retailer' });
+    setTimeout(() => {
+      setLoginSuccess(null);
+      setUser(u);
+    }, 1800);
     // Save device info on login
     try {
       if (u.phone) {
@@ -416,7 +478,7 @@ function AppContent() {
   if (loading || !splashDone) return <SplashScreen />;
 
   if (!user) {
-    return <><Login onLogin={handleLogin} /><InstallPrompt /><OfflineBanner /></>;
+    return <><Login onLogin={handleLogin} />{loginSuccess && <LoginSuccess name={loginSuccess.name} role={loginSuccess.role} />}<InstallPrompt /><OfflineBanner /></>;
   }
 
   // Site block — only developer can bypass, others see block page after login
@@ -461,3 +523,6 @@ function AppContent() {
 export default function App() {
   return <ConfirmProvider><FeatureFlagProvider><AppContent /></FeatureFlagProvider></ConfirmProvider>;
 }
+
+
+

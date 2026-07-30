@@ -15,18 +15,15 @@ const isLaunchPeriod = () => {
 function LaunchSplash() {
   return (
     <div className="min-h-screen bg-royal-950 flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Brand gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-royal-900/50 via-transparent to-royal-950" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(34,199,122,0.06)_0%,_transparent_60%)]" />
 
-      {/* Top accent */}
       <motion.div
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-mint-500 to-transparent origin-center" />
 
-      {/* Logo */}
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -39,7 +36,6 @@ function LaunchSplash() {
         <img src={logo} alt="Lucy Garden" className="relative w-24 h-24 rounded-2xl object-cover shadow-2xl ring-2 ring-mint-500/30" />
       </motion.div>
 
-      {/* Brand */}
       <motion.h1
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -56,7 +52,6 @@ function LaunchSplash() {
         Fresh Dairy Supply
       </motion.p>
 
-      {/* Launch badge */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,12 +62,11 @@ function LaunchSplash() {
             Introducing — Your Digital Dairy Partner
           </p>
           <p className="text-[10px] text-mint-300/50 text-center mt-0.5 font-medium">
-            Order • Track • Manage • Grow
+            Order &bull; Track &bull; Manage &bull; Grow
           </p>
         </div>
       </motion.div>
 
-      {/* Loading */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -87,16 +81,6 @@ function LaunchSplash() {
         </div>
       </motion.div>
 
-      {/* Bottom */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="absolute bottom-6 z-10 text-[10px] text-white/30 font-medium">
-        Developed by <span className="text-white/50 font-semibold">Divyanshu Gupta</span>
-      </motion.p>
-
-      {/* Bottom accent */}
       <motion.div
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
@@ -135,7 +119,7 @@ function NormalSplash() {
         Fresh Dairy Supply
       </motion.p>
 
-      <motion.p
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.35 }}
@@ -147,15 +131,7 @@ function NormalSplash() {
             transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
             className="h-full w-1/2 bg-gradient-to-r from-transparent via-mint-400/50 to-transparent" />
         </div>
-      </motion.p>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="absolute bottom-6 text-[10px] text-white/25 font-medium z-10">
-        Developed by <span className="text-white/40 font-semibold">Divyanshu Gupta</span>
-      </motion.p>
+      </motion.div>
     </div>
   );
 }
