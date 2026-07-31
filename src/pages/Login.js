@@ -290,7 +290,7 @@ export default function Login({ onLogin }) {
           </p>
         </motion.div>
         <p className="text-white/15 text-[10px]">
-          v{APP_CONFIG.version} &middot; Made with &#9749; &amp; &#10084;&#65039; by{' '}
+          v{APP_CONFIG.version} &middot; Designed & Developed by{' '}
           <a href="https://portfolio-divyanshu-git.vercel.app" target="_blank" rel="noreferrer"
             className="font-bold text-white/30 hover:text-white/50 transition-colors">Divyanshu Gupta</a>
         </p>
@@ -402,7 +402,7 @@ export default function Login({ onLogin }) {
                     </motion.button>
 
                     <p className="mt-8 text-[10px] text-gray-300 text-center lg:hidden">
-                      v{APP_CONFIG.version} &middot; Made with &#9749; &amp; &#10084;&#65039; by{' '}
+                      v{APP_CONFIG.version} &middot; Designed & Developed by{' '}
                       <a href="https://portfolio-divyanshu-git.vercel.app" target="_blank" rel="noreferrer"
                         className="font-bold text-gray-400 hover:text-royal-600 transition-colors">Divyanshu Gupta</a>
                     </p>
