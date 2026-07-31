@@ -1,5 +1,5 @@
 # Lucy Garden — Developer Guide
-### Version 02.10.01.01 | Last Updated: 31 July 2026 | Author: Divyanshu Gupta
+### Version 2.10.1.1 | Last Updated: 31 July 2026 | Author: Divyanshu Gupta
 
 > Yeh guide is liye likhi gayi hai taaki koi bhi developer — chahe project pehli baar dekh raha ho — kuch bhi change, add, ya debug kar sake bina kisi confusion ke. Har file, har function, har Firebase field yahan documented hai.
 
@@ -390,7 +390,7 @@ Lucy-Garden-main/
 
 ```js
 export const APP_CONFIG = {
-  version: '02.10.01.01',       // ← Sirf yahan change karo, sab jagah update ho jaayega
+  version: '2.10.1.1',       // ← Sirf yahan change karo, sab jagah update ho jaayega
   appName: 'Lucy Garden',     // ← App ka naam
   tagline: 'Fresh Dairy Supply', // ← Tagline
   developer: {
@@ -5774,4 +5774,4 @@ Ya Dev Console → Maintenance tab → Toggle OFF
 
 ---
 
-*Lucy Garden Developer Guide — Version 02.10.01.01 | 31 July 2026 | Divyanshu Gupta*
+*Lucy Garden Developer Guide — Version 2.10.1.1 | 31 July 2026 | Divyanshu Gupta*

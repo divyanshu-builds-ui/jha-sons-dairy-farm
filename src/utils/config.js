@@ -1,6 +1,6 @@
 // App Configuration — Edit here, reflects everywhere
 export const APP_CONFIG = {
-  version: '02.10.01.01',
+  version: '2.10.1.1',
   appName: 'Lucy Garden',
   tagline: 'Fresh Dairy Supply',
   developer: {
