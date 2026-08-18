@@ -222,7 +222,7 @@ function DevLayoutInner() {
         <div className="p-4 mx-3 mb-3 rounded-2xl bg-green-500/5 border border-green-500/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-black text-sm shadow-lg">D</div>
-            <div className="flex-1"><p className="text-sm font-bold text-white">Divyanshu Gupta</p><p className="text-[10px] text-green-400 font-medium">Developer • Lucy Garden</p></div>
+            <div className="flex-1"><p className="text-sm font-bold text-white">Makeward</p><p className="text-[10px] text-green-400 font-medium">Web & App Agency • Lucy Garden</p></div>
           </div>
           <button onClick={handleLogout} className="w-full mt-3 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-red-500/10 text-red-400 text-[10px] font-bold hover:bg-red-500/20 transition-all"><LogOut size={12} /> Logout</button>
         </div>

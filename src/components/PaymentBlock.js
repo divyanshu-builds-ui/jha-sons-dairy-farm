@@ -53,7 +53,7 @@ function AdminBlockView({ config }) {
   const {
     title = 'Service Suspended',
     message = 'बकाया भुगतान के कारण आपकी सेवा बंद कर दी गई है।',
-    contact = { name: 'Divyanshu Gupta', phone: '8051725780' },
+    contact = { name: 'Makeward', phone: '8051725780' },
     invoice = {},
     upi = {},
     showPayment = true,

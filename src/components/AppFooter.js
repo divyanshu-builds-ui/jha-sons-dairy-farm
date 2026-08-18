@@ -56,9 +56,9 @@ export default function AppFooter({ type = 'retailer' }) {
                 <p className="text-[9px] font-bold text-royal-600/60 dark:text-royal-400/60 uppercase tracking-widest mb-2.5">Developed By</p>
                 <a href={APP_CONFIG.developer.portfolio} target="_blank" rel="noreferrer" className="group">
                   <p className="text-sm font-bold text-gray-800 dark:text-white group-hover:text-royal-600 dark:group-hover:text-royal-400 transition-colors">{APP_CONFIG.developer.name}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Full-Stack Developer</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Web & App Development Agency</p>
                   <span className="inline-block mt-2 text-[10px] text-royal-600 dark:text-royal-400 font-semibold border border-royal-200 dark:border-royal-800 px-2.5 py-1 rounded-lg group-hover:bg-royal-50 dark:group-hover:bg-royal-900/30 transition-colors">
-                    View Portfolio →
+                    Visit Website →
                   </span>
                 </a>
               </div>

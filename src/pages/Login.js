@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, AlertCircle, Lock, ChevronLeft, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { db, doc, getDoc, updateDoc, arrayUnion } from '../services/firebase';
@@ -66,27 +66,7 @@ export default function Login({ onLogin }) {
   const [pinCountdown, setPinCountdown] = useState(0);
   const [pinBlocked, setPinBlocked] = useState(false);
 
-  useEffect(() => {
-    if (step !== 'phone') return;
-    const h = (e) => {
-      if (e.key >= '0' && e.key <= '9') { setPhone(p => p.length < 10 ? p + e.key : p); setError(''); }
-      else if (e.key === 'Backspace') { setPhone(p => p.slice(0, -1)); setError(''); }
-      else if (e.key === 'Enter') handlePhoneSubmit();
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [step, phone, phoneLockUntil]);
 
-  useEffect(() => {
-    if (step !== 'pin') return;
-    const h = (e) => {
-      if (e.key >= '0' && e.key <= '9') { setPin(p => p.length < 4 ? p + e.key : p); setError(''); }
-      else if (e.key === 'Backspace') { setPin(p => p.slice(0, -1)); setError(''); }
-      else if (e.key === 'Enter') handlePinSubmit();
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [step, pin, pinLockUntil, pinBlocked]);
 
   useEffect(() => {
     if (phoneLockUntil === -1 || phoneLockUntil <= Date.now()) { setPhoneCountdown(0); return; }
@@ -123,7 +103,7 @@ export default function Login({ onLogin }) {
     })();
   }, [step]);
 
-  const handlePhoneSubmit = async () => {
+  const handlePhoneSubmit = useCallback(async () => {
     if (phone.length !== 10) return;
     if (phoneLockUntil === -1) { setError('Device blocked. Contact admin.'); return; }
     if (phoneLockUntil > Date.now()) { setError(`Too many attempts. Wait ${fmtTime(phoneCountdown)}.`); return; }
@@ -153,9 +133,9 @@ export default function Login({ onLogin }) {
       setPhoneAttempts(0); clearPhoneLock(); setStep('pin');
     } catch { setError('Network error. Try again.'); }
     setLoading(false);
-  };
+  }, [phone, phoneLockUntil, phoneCountdown, phoneAttempts, phoneLockTier]);
 
-  const handlePinSubmit = async () => {
+  const handlePinSubmit = useCallback(async () => {
     if (pin.length < 4) return;
     if (pinBlocked) { setError('Account blocked. Contact admin.'); return; }
     if (pinLockUntil > Date.now()) { setError(`Locked. Wait ${fmtTime(pinCountdown)}.`); setPin(''); return; }
@@ -178,7 +158,34 @@ export default function Login({ onLogin }) {
       }
       await createSession({ ...data, phone });
     } catch { setError('Network error. Try again.'); setLoading(false); }
-  };
+  }, [phone, pin, pinBlocked, pinLockUntil, pinCountdown, pinAttempts, pinLockTier]);
+
+  const phoneSubmitRef = useRef(handlePhoneSubmit);
+  const pinSubmitRef = useRef(handlePinSubmit);
+  useEffect(() => { phoneSubmitRef.current = handlePhoneSubmit; }, [handlePhoneSubmit]);
+  useEffect(() => { pinSubmitRef.current = handlePinSubmit; }, [handlePinSubmit]);
+
+  useEffect(() => {
+    if (step !== 'phone') return;
+    const h = (e) => {
+      if (e.key >= '0' && e.key <= '9') { setPhone(p => p.length < 10 ? p + e.key : p); setError(''); }
+      else if (e.key === 'Backspace') { setPhone(p => p.slice(0, -1)); setError(''); }
+      else if (e.key === 'Enter') phoneSubmitRef.current();
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== 'pin') return;
+    const h = (e) => {
+      if (e.key >= '0' && e.key <= '9') { setPin(p => p.length < 4 ? p + e.key : p); setError(''); }
+      else if (e.key === 'Backspace') { setPin(p => p.slice(0, -1)); setError(''); }
+      else if (e.key === 'Enter') pinSubmitRef.current();
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [step]);
 
   const handleWrongPin = async () => {
     const newAttempts = pinAttempts + 1; setPinAttempts(newAttempts); setPin(''); setLoading(false);
@@ -291,8 +298,8 @@ export default function Login({ onLogin }) {
         </motion.div>
         <p className="text-white/15 text-[10px]">
           v{APP_CONFIG.version} &middot; Designed & Developed by{' '}
-          <a href="https://portfolio-divyanshu-git.vercel.app" target="_blank" rel="noreferrer"
-            className="font-bold text-white/30 hover:text-white/50 transition-colors">Divyanshu Gupta</a>
+          <a href="https://makeward.com" target="_blank" rel="noreferrer"
+            className="font-bold text-white/30 hover:text-white/50 transition-colors">Makeward</a>
         </p>
       </div>
 
@@ -361,8 +368,8 @@ export default function Login({ onLogin }) {
                         ${error ? 'border-red-400' : phone.length > 0 ? 'border-royal-500' : 'border-gray-200'}`}>
                       <span className="text-sm font-bold text-gray-400 shrink-0">+91</span>
                       <div className="w-px h-4 bg-gray-200 shrink-0" />
-                      <span className={`flex-1 text-xl font-black tracking-[0.1em] ${error ? 'text-red-500' : 'text-gray-900'} ${phone.length === 0 ? 'opacity-0' : ''}`}>
-                        {phone.length > 0 ? phone.replace(/(\d{5})(\d{0,5})/, '$1 $2').trim() : '0'}
+                      <span className={`flex-1 text-xl font-black tracking-[0.1em] ${error ? 'text-red-500' : phone.length > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                        {phone.length > 0 ? phone.replace(/(\d{5})(\d{0,5})/, '$1 $2').trim() : '_ _ _ _ _ _ _ _ _ _'}
                       </span>
                       {phone.length > 0 && <span className="text-[10px] text-gray-300 shrink-0 font-mono">{phone.length}/10</span>}
                     </motion.div>
@@ -403,8 +410,8 @@ export default function Login({ onLogin }) {
 
                     <p className="mt-8 text-[10px] text-gray-300 text-center lg:hidden">
                       v{APP_CONFIG.version} &middot; Designed & Developed by{' '}
-                      <a href="https://portfolio-divyanshu-git.vercel.app" target="_blank" rel="noreferrer"
-                        className="font-bold text-gray-400 hover:text-royal-600 transition-colors">Divyanshu Gupta</a>
+                      <a href="https://makeward.com" target="_blank" rel="noreferrer"
+                        className="font-bold text-gray-400 hover:text-royal-600 transition-colors">Makeward</a>
                     </p>
                   </motion.div>
                 )}

@@ -87,7 +87,7 @@ export default function About() {
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Designed & Developed by</p>
               <p className="text-base font-black text-gray-800 dark:text-white mt-0.5">{APP_CONFIG.developer.name}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Full-Stack Developer • UI/UX Designer</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Web & App Development Agency</p>
             </div>
             <a href={APP_CONFIG.developer.portfolio} target="_blank" rel="noreferrer"
               className="w-9 h-9 bg-royal-50 dark:bg-royal-900/30 rounded-xl flex items-center justify-center border border-royal-100 dark:border-royal-800 hover:bg-royal-100 dark:hover:bg-royal-900/50 transition-colors shrink-0">

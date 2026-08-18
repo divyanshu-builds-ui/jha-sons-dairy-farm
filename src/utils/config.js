@@ -4,8 +4,8 @@ export const APP_CONFIG = {
   appName: 'Lucy Garden',
   tagline: 'Fresh Dairy Supply',
   developer: {
-    name: 'Divyanshu Gupta',
-    portfolio: 'https://portfolio-divyanshu-git.vercel.app',
+    name: 'Makeward',
+    portfolio: 'https://makeward.in',
   },
   phone: '9939079107',
 };

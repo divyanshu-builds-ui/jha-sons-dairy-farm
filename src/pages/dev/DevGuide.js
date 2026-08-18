@@ -541,7 +541,7 @@ export default function DevGuide() {
 
       {/* Footer */}
       <div className="text-center pt-2">
-        <p className="text-[10px] text-gray-600">Lucy Garden Dev Console · {sections.length} tools · Built by Divyanshu Gupta</p>
+        <p className="text-[10px] text-gray-600">Lucy Garden Dev Console · {sections.length} tools · Built by Makeward</p>
       </div>
     </div>
   );
