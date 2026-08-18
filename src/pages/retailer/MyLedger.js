@@ -138,113 +138,124 @@ export default function MyLedger() {
 
   return (
     <div className="pb-24 space-y-4">
-      {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-3 py-2">
-          <Calendar size={14} className="text-gray-400" />
-          <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} max={toDate} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent w-[120px]" />
-          <span className="text-gray-400 text-[10px]">to</span>
-          <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} max={todayStr} className="text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent w-[120px]" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 bg-white dark:bg-[#1a1917] border border-warm-200 dark:border-[#2e2d2b] rounded-md px-2.5 py-2">
+          <Calendar size={13} className="text-warm-400 shrink-0" />
+          <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} max={toDate} className="text-[11px] text-warm-700 dark:text-warm-200 outline-none bg-transparent flex-1 min-w-0" />
+          <span className="text-warm-300 text-[10px] shrink-0">–</span>
+          <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} max={todayStr} className="text-[11px] text-warm-700 dark:text-warm-200 outline-none bg-transparent flex-1 min-w-0" />
         </div>
-        <div className="ml-auto flex items-center gap-2">
-        <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-lg px-2 py-1.5 outline-none">
-          {[10, 25, 31, 50].map(n => <option key={n} value={n}>{n}/page</option>)}
-        </select>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={printPDF}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0f172a] text-white text-xs font-bold rounded-lg">
+        <motion.button whileTap={{ scale: 0.95 }} onClick={printPDF} className="flex items-center gap-1.5 px-3 py-2 bg-navy-700 text-white text-xs font-semibold rounded-md">
           <Printer size={12} /> PDF
         </motion.button>
+      </div>
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-white dark:bg-[#1a1917] border border-warm-200 dark:border-[#2e2d2b] rounded-md px-3 py-2.5 min-w-0">
+            <p className="text-[10px] text-warm-400 uppercase tracking-wide">Daily</p>
+            <p className="text-sm font-bold text-warm-800 dark:text-warm-100 mt-0.5 font-mono">{formatPrice(totalDaily)}</p>
+          </div>
+          <div className="bg-white dark:bg-[#1a1917] border border-warm-200 dark:border-[#2e2d2b] rounded-md px-3 py-2.5 min-w-0">
+            <p className="text-[10px] text-warm-400 uppercase tracking-wide">Seasonal</p>
+            <p className="text-sm font-bold text-amber-600 mt-0.5 font-mono">{formatPrice(totalSeasonal)}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-white dark:bg-[#1a1917] border border-warm-200 dark:border-[#2e2d2b] rounded-md px-3 py-2.5 min-w-0">
+            <p className="text-[10px] text-warm-400 uppercase tracking-wide">Opening</p>
+            <p className="text-sm font-bold text-warm-800 dark:text-warm-100 mt-0.5 font-mono">{formatPrice(openingBalance)}</p>
+          </div>
+          <div className="bg-white dark:bg-[#1a1917] border border-warm-200 dark:border-[#2e2d2b] rounded-md px-3 py-2.5 min-w-0">
+            <p className="text-[10px] text-warm-400 uppercase tracking-wide">Paid</p>
+            <p className="text-sm font-bold text-green-700 mt-0.5 font-mono">{formatPrice(totalDeposit)}</p>
+          </div>
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-md px-3 py-2.5 min-w-0">
+            <p className="text-[10px] text-red-500 uppercase tracking-wide">Due</p>
+            <p className="text-sm font-bold text-red-600 mt-0.5 font-mono">{formatPrice(closingBal)}</p>
+          </div>
         </div>
       </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-5 gap-2">
-        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Opening</p><p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{formatPrice(openingBalance)}</p></div>
-        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Daily</p><p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{formatPrice(totalDaily)}</p></div>
-        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Seasonal</p><p className="text-sm font-black text-amber-600 mt-0.5">{formatPrice(totalSeasonal)}</p></div>
-        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-gray-400 font-bold uppercase">Paid</p><p className="text-sm font-black text-mint-600 mt-0.5">{formatPrice(totalDeposit)}</p></div>
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-2 py-2.5 text-center"><p className="text-[9px] text-red-400 font-bold uppercase">Due</p><p className="text-sm font-black text-red-600 mt-0.5">{formatPrice(closingBal)}</p></div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden max-w-[calc(100vw-2rem)]">
-        <div className="overflow-x-auto scrollbar-hide">
-          <table className="border-collapse w-full min-w-[700px]">
-            <thead className="sticky top-0 z-30">
-              <tr className="bg-[#0f172a]">
-                <th rowSpan={2} className="sticky left-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[72px]">Date</th>
-                {PRODUCT_GROUPS.map((g, gi) => <th key={gi} colSpan={g.items.length} className="px-1 py-3 text-center font-extrabold text-white text-xs border-r border-white/10">{groupCodes[g.group] || g.group}</th>)}
-                <th rowSpan={2} className="px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[70px]">TOTAL</th>
-                <th rowSpan={2} className="px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[70px]">PAID</th>
-                <th rowSpan={2} className="sticky right-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs w-[70px] border-l border-white/10">DUE</th>
-              </tr>
-              <tr className="bg-[#1e293b]">
-                {PRODUCT_GROUPS.flatMap(g => g.items).map(item => <th key={item.key} className="px-1 py-2 text-center font-bold text-gray-300 border-r border-white/5 min-w-[40px] text-[10px]">{item.label}<br/><span className="text-[9px] font-medium text-gray-400">₹{item.price}</span></th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {pagedRows.map((row, i) => (
-                <tr key={row.dateStr} className={`${row.dailyAmt > 0 || row.deposit > 0 ? 'bg-white dark:bg-[#111]' : i % 2 === 0 ? 'bg-white dark:bg-[#111]' : 'bg-gray-50/50 dark:bg-[#1a1a1a]/30'} hover:bg-royal-50/30 dark:hover:bg-royal-900/20`}>
-                  <td className="sticky left-0 z-10 bg-inherit px-2 py-2.5 text-center text-[11px] font-bold text-gray-600 dark:text-gray-400 border-b border-r border-gray-200 dark:border-[#222] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap">{row.dateStr}</td>
-                  {PRODUCT_GROUPS.flatMap(g => g.items).map(item => { const q = row.items[item.key] || 0; return <td key={item.key} className="px-1 py-2.5 text-center border-b border-r border-gray-100 dark:border-[#222]">{q > 0 ? <span className="font-black text-[13px] text-royal-700 dark:text-royal-300">{q}</span> : <span className="text-gray-200 dark:text-gray-600">·</span>}</td>; })}
-                  <td className="px-2 py-2.5 text-center border-b border-r border-gray-200 dark:border-[#222]">{row.dailyAmt > 0 ? <span className="font-black text-[12px] text-gray-800 dark:text-white">₹{row.dailyAmt}</span> : <span className="text-gray-200">—</span>}</td>
-                  <td className="px-2 py-2.5 text-center border-b border-r border-gray-200 dark:border-[#222]">{row.deposit > 0 ? <span className="font-bold text-[12px] text-mint-700 dark:text-mint-400">₹{row.deposit}</span> : <span className="text-gray-200">—</span>}</td>
-                  <td className="sticky right-0 z-10 bg-inherit px-2 py-2.5 text-center border-b border-l border-gray-200 dark:border-[#222] shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]"><span className="font-black text-[12px] text-gray-800 dark:text-white">{row.closing}</span></td>
+      <div className="flex-1 min-w-0 space-y-4">
+        <div className="bg-white dark:bg-[#1a1917] rounded-lg border border-warm-200 dark:border-[#2e2d2b] overflow-hidden max-w-[calc(100vw-2rem)]">
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="border-collapse w-full min-w-[700px]">
+              <thead className="sticky top-0 z-[15]">
+                <tr className="bg-navy-800">
+                  <th rowSpan={2} className="sticky left-0 z-20 bg-navy-800 px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[72px]">Date</th>
+                  {PRODUCT_GROUPS.map((g, gi) => <th key={gi} colSpan={g.items.length} className="px-1 py-3 text-center font-extrabold text-white text-xs border-r border-white/10">{groupCodes[g.group] || g.group}</th>)}
+                  <th rowSpan={2} className="px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[70px]">TOTAL</th>
+                  <th rowSpan={2} className="px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[70px]">PAID</th>
+                  <th rowSpan={2} className="sticky right-0 z-20 bg-navy-800 px-2 py-3 text-center text-white font-bold text-xs w-[70px] border-l border-white/10">DUE</th>
                 </tr>
-              ))}
-              <tr className="bg-[#0f172a]">
-                <td className="sticky left-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-xs font-bold text-white border-r border-white/10">TOTAL</td>
-                {PRODUCT_GROUPS.flatMap(g => g.items).map(item => { const t = rowData.reduce((s, r) => s + (r.items[item.key] || 0), 0); return <td key={item.key} className="px-1 py-2.5 text-center text-[12px] font-black text-amber-300 border-r border-white/5">{t > 0 ? t : '·'}</td>; })}
-                <td className="px-2 py-2.5 text-center text-[12px] font-black text-white border-r border-white/10">{totalDaily > 0 ? `₹${totalDaily}` : '—'}</td>
-                <td className="px-2 py-2.5 text-center text-[11px] font-bold text-mint-300 border-r border-white/10">{totalDeposit > 0 ? `₹${totalDeposit}` : '—'}</td>
-                <td className="sticky right-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-[12px] font-black text-white border-l border-white/10">₹{closingBal}</td>
-              </tr>
-            </tbody>
-          </table>
+                <tr className="bg-navy-700">
+                  {PRODUCT_GROUPS.flatMap(g => g.items).map(item => <th key={item.key} className="px-1 py-2 text-center font-bold text-gray-300 border-r border-white/5 min-w-[40px] text-[10px]">{item.label}<br/><span className="text-[9px] font-medium text-gray-400">₹{item.price}</span></th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {pagedRows.map((row, i) => (
+                  <tr key={row.dateStr} className={`${i % 2 === 0 ? 'bg-white dark:bg-[#1a1917]' : 'bg-warm-50/50 dark:bg-[#2e2d2b]/30'} hover:bg-navy-50/20 dark:hover:bg-navy-900/10`}>
+                    <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1917]' : 'bg-warm-50 dark:bg-[#2e2d2b]'} px-2 py-2.5 text-center text-[11px] font-medium text-warm-600 dark:text-warm-400 border-b border-r border-warm-200 dark:border-[#2e2d2b] whitespace-nowrap`}>{row.dateStr}</td>
+                    {PRODUCT_GROUPS.flatMap(g => g.items).map(item => { const q = row.items[item.key] || 0; return <td key={item.key} className="px-1 py-2.5 text-center border-b border-r border-warm-100 dark:border-[#2e2d2b]">{q > 0 ? <span className="font-bold text-[13px] text-navy-700 dark:text-navy-300 font-mono">{q}</span> : <span className="text-warm-200 dark:text-warm-700">·</span>}</td>; })}
+                    <td className="px-2 py-2.5 text-center border-b border-r border-warm-200 dark:border-[#2e2d2b]">{row.dailyAmt > 0 ? <span className="font-bold text-[12px] text-warm-800 dark:text-warm-100 font-mono">₹{row.dailyAmt}</span> : <span className="text-warm-200">—</span>}</td>
+                    <td className="px-2 py-2.5 text-center border-b border-r border-warm-200 dark:border-[#2e2d2b]">{row.deposit > 0 ? <span className="font-bold text-[12px] text-green-700 dark:text-green-400 font-mono">₹{row.deposit}</span> : <span className="text-warm-200">—</span>}</td>
+                    <td className={`sticky right-0 z-10 ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1917]' : 'bg-warm-50 dark:bg-[#2e2d2b]'} px-2 py-2.5 text-center border-b border-l border-warm-200 dark:border-[#2e2d2b]`}><span className="font-bold text-[12px] text-warm-800 dark:text-warm-100 font-mono">{row.closing}</span></td>
+                  </tr>
+                ))}
+                <tr className="bg-navy-800">
+                  <td className="sticky left-0 z-20 bg-navy-800 px-2 py-2.5 text-center text-xs font-bold text-white border-r border-white/10">TOTAL</td>
+                  {PRODUCT_GROUPS.flatMap(g => g.items).map(item => { const t = rowData.reduce((s, r) => s + (r.items[item.key] || 0), 0); return <td key={item.key} className="px-1 py-2.5 text-center text-[12px] font-bold text-amber-300 border-r border-white/5 font-mono">{t > 0 ? t : '·'}</td>; })}
+                  <td className="px-2 py-2.5 text-center text-[12px] font-bold text-white border-r border-white/10 font-mono">{totalDaily > 0 ? `₹${totalDaily}` : '—'}</td>
+                  <td className="px-2 py-2.5 text-center text-[11px] font-bold text-green-300 border-r border-white/10 font-mono">{totalDeposit > 0 ? `₹${totalDeposit}` : '—'}</td>
+                  <td className="sticky right-0 z-20 bg-navy-800 px-2 py-2.5 text-center text-[12px] font-bold text-white border-l border-white/10 font-mono">₹{closingBal}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {SEASONAL_GROUPS.length > 0 && (
+          <div className="bg-white dark:bg-[#1a1917] rounded-lg border border-warm-200 dark:border-[#2e2d2b] overflow-hidden max-w-[calc(100vw-2rem)]">
+            <div className="px-4 py-2.5 bg-amber-600"><p className="text-sm font-semibold text-white">Seasonal Products</p></div>
+            <div className="overflow-x-auto scrollbar-hide">
+              <table className="border-collapse w-full min-w-[500px]">
+                <thead className="sticky top-0 z-[15]">
+                  <tr className="bg-navy-800">
+                    <th rowSpan={2} className="sticky left-0 z-20 bg-navy-800 px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[72px]">Date</th>
+                    {SEASONAL_GROUPS.map((g, gi) => <th key={gi} colSpan={g.items.length} className="px-1 py-3 text-center font-extrabold text-white text-xs border-r border-white/10">{g.group}</th>)}
+                    <th rowSpan={2} className="sticky right-0 z-20 bg-navy-800 px-2 py-3 text-center text-white font-bold text-xs w-[70px] border-l border-white/10">TOTAL</th>
+                  </tr>
+                  <tr className="bg-navy-700">
+                    {SEASONAL_GROUPS.flatMap(g => g.items).map(item => <th key={item.key} className="px-1 py-2 text-center font-bold text-gray-300 border-r border-white/5 min-w-[40px] text-[10px]">{item.label}<br/><span className="text-[9px] font-medium text-gray-400">₹{item.price}</span></th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedRows.map((row, i) => (
+                    <tr key={row.dateStr} className={`${i % 2 === 0 ? 'bg-white dark:bg-[#1a1917]' : 'bg-warm-50/50 dark:bg-[#2e2d2b]/30'} hover:bg-navy-50/20 dark:hover:bg-navy-900/10`}>
+                      <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1917]' : 'bg-warm-50 dark:bg-[#2e2d2b]'} px-2 py-2.5 text-center text-[11px] font-medium text-warm-600 dark:text-warm-400 border-b border-r border-warm-200 dark:border-[#2e2d2b] whitespace-nowrap`}>{row.dateStr}</td>
+                      {SEASONAL_GROUPS.flatMap(g => g.items).map(item => { const q = row.items[item.key] || 0; return <td key={item.key} className="px-1 py-2.5 text-center border-b border-r border-warm-100 dark:border-[#2e2d2b]">{q > 0 ? <span className="font-bold text-[13px] text-amber-700 dark:text-amber-300 font-mono">{q}</span> : <span className="text-warm-200 dark:text-warm-700">·</span>}</td>; })}
+                      <td className={`sticky right-0 z-10 ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1917]' : 'bg-warm-50 dark:bg-[#2e2d2b]'} px-2 py-2.5 text-center border-b border-l border-warm-200 dark:border-[#2e2d2b]`}>{row.seasonalAmt > 0 ? <span className="font-bold text-[12px] text-amber-700 dark:text-amber-300 font-mono">₹{row.seasonalAmt}</span> : <span className="text-warm-200">—</span>}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-navy-800">
+                    <td className="sticky left-0 z-20 bg-navy-800 px-2 py-2.5 text-center text-xs font-bold text-white border-r border-white/10">TOTAL</td>
+                    {SEASONAL_GROUPS.flatMap(g => g.items).map(item => { const t = rowData.reduce((s, r) => s + (r.items[item.key] || 0), 0); return <td key={item.key} className="px-1 py-2.5 text-center text-[12px] font-bold text-amber-300 border-r border-white/5 font-mono">{t > 0 ? t : '·'}</td>; })}
+                    <td className="sticky right-0 z-20 bg-navy-800 px-2 py-2.5 text-center text-[12px] font-bold text-amber-300 border-l border-white/10 font-mono">{totalSeasonal > 0 ? `₹${totalSeasonal}` : '—'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || totalPages <= 1} className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-md bg-warm-100 dark:bg-[#2e2d2b] text-warm-600 dark:text-warm-300 disabled:opacity-30"><ChevronLeft size={13} /> Prev</button>
+          <div className="flex items-center gap-2">
+            <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="text-xs text-warm-700 dark:text-warm-200 bg-white dark:bg-[#1a1917] border border-warm-200 dark:border-[#2e2d2b] rounded-md px-2 py-1.5 outline-none">
+              {[10, 25, 31, 50].map(n => <option key={n} value={n}>{n}/pg</option>)}
+            </select>
+            <span className="text-[11px] text-warm-400">{totalPages > 1 ? `Page ${page} of ${totalPages}` : `${rowData.length} days`}</span>
+          </div>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-md bg-warm-100 dark:bg-[#2e2d2b] text-warm-600 dark:text-warm-300 disabled:opacity-30">Next <ChevronRight size={13} /></button>
         </div>
       </div>
-
-      {/* Seasonal Table */}
-      {SEASONAL_GROUPS.length > 0 && (
-      <div className="bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-[#222] overflow-hidden max-w-[calc(100vw-2rem)]">
-        <div className="px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600"><p className="text-sm font-bold text-white">Seasonal Products</p></div>
-        <div className="overflow-x-auto scrollbar-hide">
-          <table className="border-collapse w-full min-w-[500px]">
-            <thead className="sticky top-0 z-30">
-              <tr className="bg-[#0f172a]">
-                <th rowSpan={2} className="sticky left-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs border-r border-white/10 w-[72px]">Date</th>
-                {SEASONAL_GROUPS.map((g, gi) => <th key={gi} colSpan={g.items.length} className="px-1 py-3 text-center font-extrabold text-white text-xs border-r border-white/10">{g.group}</th>)}
-                <th rowSpan={2} className="sticky right-0 z-20 bg-[#0f172a] px-2 py-3 text-center text-white font-bold text-xs w-[70px] border-l border-white/10">TOTAL</th>
-              </tr>
-              <tr className="bg-[#1e293b]">
-                {SEASONAL_GROUPS.flatMap(g => g.items).map(item => <th key={item.key} className="px-1 py-2 text-center font-bold text-gray-300 border-r border-white/5 min-w-[40px] text-[10px]">{item.label}<br/><span className="text-[9px] font-medium text-gray-400">₹{item.price}</span></th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {pagedRows.map((row, i) => (
-                <tr key={row.dateStr} className={`${row.seasonalAmt > 0 ? 'bg-white dark:bg-[#111]' : i % 2 === 0 ? 'bg-white dark:bg-[#111]' : 'bg-gray-50/50 dark:bg-[#1a1a1a]/30'} hover:bg-royal-50/30 dark:hover:bg-royal-900/20`}>
-                  <td className="sticky left-0 z-10 bg-inherit px-2 py-2.5 text-center text-[11px] font-bold text-gray-600 dark:text-gray-400 border-b border-r border-gray-200 dark:border-[#222] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap">{row.dateStr}</td>
-                  {SEASONAL_GROUPS.flatMap(g => g.items).map(item => { const q = row.items[item.key] || 0; return <td key={item.key} className="px-1 py-2.5 text-center border-b border-r border-gray-100 dark:border-[#222]">{q > 0 ? <span className="font-black text-[13px] text-amber-700 dark:text-amber-300">{q}</span> : <span className="text-gray-200 dark:text-gray-600">·</span>}</td>; })}
-                  <td className="sticky right-0 z-10 bg-inherit px-2 py-2.5 text-center border-b border-l border-gray-200 dark:border-[#222] shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.05)]">{row.seasonalAmt > 0 ? <span className="font-black text-[12px] text-amber-700 dark:text-amber-300">₹{row.seasonalAmt}</span> : <span className="text-gray-200">—</span>}</td>
-                </tr>
-              ))}
-              <tr className="bg-[#0f172a]">
-                <td className="sticky left-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-xs font-bold text-white border-r border-white/10">TOTAL</td>
-                {SEASONAL_GROUPS.flatMap(g => g.items).map(item => { const t = rowData.reduce((s, r) => s + (r.items[item.key] || 0), 0); return <td key={item.key} className="px-1 py-2.5 text-center text-[12px] font-black text-amber-300 border-r border-white/5">{t > 0 ? t : '·'}</td>; })}
-                <td className="sticky right-0 z-20 bg-[#0f172a] px-2 py-2.5 text-center text-[12px] font-black text-amber-300 border-l border-white/10">{totalSeasonal > 0 ? `₹${totalSeasonal}` : '—'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>)}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-      <div className="flex items-center justify-between px-1">
-        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 disabled:opacity-30"><ChevronLeft size={14} /> Prev</button>
-        <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Page {page} of {totalPages}</span>
-        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-300 disabled:opacity-30">Next <ChevronRight size={14} /></button>
-      </div>)}
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, AlertCircle, Lock, ChevronLeft, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ArrowRight, AlertCircle, Lock, ChevronLeft, AlertTriangle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { db, doc, getDoc, updateDoc, arrayUnion } from '../services/firebase';
 import { APP_CONFIG } from '../utils/config';
 import logo from '../assets/logo.png';
@@ -55,6 +55,8 @@ export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [pendingUser, setPendingUser] = useState(null);
 
+  const [showPin, setShowPin] = useState(false);
+
   const initLock = readPhoneLock();
   const [phoneLockUntil, setPhoneLockUntil] = useState(initLock?.until ?? 0);
   const [phoneLockTier, setPhoneLockTier] = useState(initLock?.tier ?? 0);
@@ -103,7 +105,7 @@ export default function Login({ onLogin }) {
     })();
   }, [step]);
 
-  const handlePhoneSubmit = useCallback(async () => {
+  const handlePhoneSubmit = async () => {
     if (phone.length !== 10) return;
     if (phoneLockUntil === -1) { setError('Device blocked. Contact admin.'); return; }
     if (phoneLockUntil > Date.now()) { setError(`Too many attempts. Wait ${fmtTime(phoneCountdown)}.`); return; }
@@ -133,9 +135,9 @@ export default function Login({ onLogin }) {
       setPhoneAttempts(0); clearPhoneLock(); setStep('pin');
     } catch { setError('Network error. Try again.'); }
     setLoading(false);
-  }, [phone, phoneLockUntil, phoneCountdown, phoneAttempts, phoneLockTier]);
+  };
 
-  const handlePinSubmit = useCallback(async () => {
+  const handlePinSubmit = async () => {
     if (pin.length < 4) return;
     if (pinBlocked) { setError('Account blocked. Contact admin.'); return; }
     if (pinLockUntil > Date.now()) { setError(`Locked. Wait ${fmtTime(pinCountdown)}.`); setPin(''); return; }
@@ -158,34 +160,16 @@ export default function Login({ onLogin }) {
       }
       await createSession({ ...data, phone });
     } catch { setError('Network error. Try again.'); setLoading(false); }
-  }, [phone, pin, pinBlocked, pinLockUntil, pinCountdown, pinAttempts, pinLockTier]);
+  };
 
-  const phoneSubmitRef = useRef(handlePhoneSubmit);
-  const pinSubmitRef = useRef(handlePinSubmit);
-  useEffect(() => { phoneSubmitRef.current = handlePhoneSubmit; }, [handlePhoneSubmit]);
-  useEffect(() => { pinSubmitRef.current = handlePinSubmit; }, [handlePinSubmit]);
+  // Keep latest state in a ref so keydown handler always has fresh values
+  const stateRef = useRef({});
+  stateRef.current = { step, phone, pin, phoneLockUntil, phoneCountdown, phoneAttempts, phoneLockTier, pinBlocked, pinLockUntil, pinCountdown, pinAttempts, pinLockTier, loading };
 
-  useEffect(() => {
-    if (step !== 'phone') return;
-    const h = (e) => {
-      if (e.key >= '0' && e.key <= '9') { setPhone(p => p.length < 10 ? p + e.key : p); setError(''); }
-      else if (e.key === 'Backspace') { setPhone(p => p.slice(0, -1)); setError(''); }
-      else if (e.key === 'Enter') phoneSubmitRef.current();
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [step]);
-
-  useEffect(() => {
-    if (step !== 'pin') return;
-    const h = (e) => {
-      if (e.key >= '0' && e.key <= '9') { setPin(p => p.length < 4 ? p + e.key : p); setError(''); }
-      else if (e.key === 'Backspace') { setPin(p => p.slice(0, -1)); setError(''); }
-      else if (e.key === 'Enter') pinSubmitRef.current();
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [step]);
+  const handlePhoneSubmitRef = useRef(null);
+  const handlePinSubmitRef = useRef(null);
+  handlePhoneSubmitRef.current = handlePhoneSubmit;
+  handlePinSubmitRef.current = handlePinSubmit;
 
   const handleWrongPin = async () => {
     const newAttempts = pinAttempts + 1; setPinAttempts(newAttempts); setPin(''); setLoading(false);
@@ -260,7 +244,7 @@ export default function Login({ onLogin }) {
             disabled={disabled || k === ''}
             className={`h-14 rounded-2xl font-bold text-xl select-none transition-colors
               ${k === '' ? 'invisible pointer-events-none'
-                : k === 'back' ? 'bg-royal-50 text-royal-600 active:bg-royal-100 text-base'
+                : k === 'back' ? 'bg-navy-50 text-navy-700 active:bg-navy-100 text-base'
                 : 'bg-white text-gray-900 shadow-sm border border-gray-100 active:bg-gray-50'}
               ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}>
             {k === 'back' ? '⌫' : k}
@@ -290,7 +274,7 @@ export default function Login({ onLogin }) {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <h2 className="text-[42px] xl:text-[48px] font-black text-white leading-[1.1] mb-5">
             Simple.<br />Secure.<br />
-            <span className="text-royal-400">Reliable.</span>
+            <span className="text-navy-300">Reliable.</span>
           </h2>
           <p className="text-white/30 text-sm leading-relaxed max-w-[260px]">
             Sign in to access your account and manage your records.
@@ -327,7 +311,7 @@ export default function Login({ onLogin }) {
                 {step === 'phone' && (
                   <motion.div key="phone" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
                     <div className="mb-8">
-                      <p className="text-[10px] font-bold text-royal-500 tracking-[0.18em] uppercase mb-2 flex items-center gap-1.5">
+                      <p className="text-[10px] font-bold text-navy-500 tracking-[0.18em] uppercase mb-2 flex items-center gap-1.5">
                         <ShieldCheck size={10} /> Secure Login
                       </p>
                       <h2 className="text-2xl font-black text-gray-900">Sign in</h2>
@@ -341,9 +325,9 @@ export default function Login({ onLogin }) {
                           {recent.map(r => (
                             <motion.button key={r.phone} type="button" whileTap={{ scale: 0.98 }}
                               onClick={() => { setPhone(r.phone); setError(''); }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 bg-white rounded-xl border border-gray-100 hover:border-royal-200 hover:bg-royal-50/30 transition-all shadow-sm">
-                              <div className="w-8 h-8 bg-royal-100 rounded-lg flex items-center justify-center shrink-0">
-                                <span className="text-royal-600 font-black text-[11px]">{(r.name || r.phone).slice(0, 2).toUpperCase()}</span>
+                              className="w-full flex items-center gap-3 px-3 py-2.5 bg-white rounded-xl border border-gray-100 hover:border-navy-200 hover:bg-navy-50/30 transition-all shadow-sm">
+                              <div className="w-8 h-8 bg-navy-100 rounded-lg flex items-center justify-center shrink-0">
+                                <span className="text-navy-700 font-black text-[11px]">{(r.name || r.phone).slice(0, 2).toUpperCase()}</span>
                               </div>
                               <div className="flex-1 text-left min-w-0">
                                 {r.name && <p className="text-sm font-bold text-gray-800 truncate">{r.name}</p>}
@@ -365,12 +349,19 @@ export default function Login({ onLogin }) {
                       animate={error ? { x: [0, -5, 5, -3, 3, 0] } : {}}
                       transition={{ duration: 0.2 }}
                       className={`flex items-center gap-3 rounded-xl px-4 py-3.5 border-2 bg-white transition-colors
-                        ${error ? 'border-red-400' : phone.length > 0 ? 'border-royal-500' : 'border-gray-200'}`}>
+                        ${error ? 'border-red-400' : phone.length > 0 ? 'border-navy-500' : 'border-gray-200'}`}>
                       <span className="text-sm font-bold text-gray-400 shrink-0">+91</span>
                       <div className="w-px h-4 bg-gray-200 shrink-0" />
-                      <span className={`flex-1 text-xl font-black tracking-[0.1em] ${error ? 'text-red-500' : phone.length > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                        {phone.length > 0 ? phone.replace(/(\d{5})(\d{0,5})/, '$1 $2').trim() : '_ _ _ _ _ _ _ _ _ _'}
-                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        value={phone}
+                        onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setPhone(v); setError(''); }}
+                        onKeyDown={e => { if (e.key === 'Enter') handlePhoneSubmit(); }}
+                        placeholder="_ _ _ _ _ _ _ _ _ _"
+                        className={`flex-1 text-xl font-black tracking-[0.1em] bg-transparent outline-none placeholder:text-gray-300 ${error ? 'text-red-500' : 'text-gray-900'}`}
+                      />
                       {phone.length > 0 && <span className="text-[10px] text-gray-300 shrink-0 font-mono">{phone.length}/10</span>}
                     </motion.div>
 
@@ -401,7 +392,7 @@ export default function Login({ onLogin }) {
                       disabled={loading || phone.length < 10 || isPhoneLocked}
                       className={`w-full mt-5 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all
                         ${phone.length === 10 && !isPhoneLocked
-                          ? 'bg-royal-700 text-white shadow-md shadow-royal-700/20 hover:bg-royal-600'
+                          ? 'bg-navy-700 text-white shadow-md shadow-navy-700/20 hover:bg-navy-800'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                       {loading
                         ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.75 }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
@@ -410,8 +401,8 @@ export default function Login({ onLogin }) {
 
                     <p className="mt-8 text-[10px] text-gray-300 text-center lg:hidden">
                       v{APP_CONFIG.version} &middot; Designed & Developed by{' '}
-                      <a href="https://makeward.com" target="_blank" rel="noreferrer"
-                        className="font-bold text-gray-400 hover:text-royal-600 transition-colors">Makeward</a>
+                      <a href="https://makeward.in" target="_blank" rel="noreferrer"
+                        className="font-bold text-gray-400 hover:text-navy-600 transition-colors">Makeward</a>
                     </p>
                   </motion.div>
                 )}
@@ -422,7 +413,7 @@ export default function Login({ onLogin }) {
 
                     {/* back */}
                     <button onClick={() => { setStep('phone'); setPin(''); setError(''); }}
-                      className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-royal-600 transition-colors mb-10">
+                      className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-navy-600 transition-colors mb-10">
                       <ChevronLeft size={13} /> Change number
                     </button>
 
@@ -432,20 +423,28 @@ export default function Login({ onLogin }) {
                       <p className="text-sm font-mono text-gray-400 mt-2">+91 {phone.slice(0,5)} {phone.slice(5)}</p>
                     </div>
 
-                    {/* dots - large, centered */}
+                    {/* PIN input - same style as phone */}
                     <motion.div
                       animate={error ? { x: [0, -8, 8, -5, 5, 0] } : {}}
                       transition={{ duration: 0.18 }}
-                      className="flex justify-center gap-6 mb-3">
-                      {[0,1,2,3].map(i => (
-                        <motion.div key={i}
-                          animate={pin.length > i ? { scale: [1, 1.3, 1] } : { scale: 1 }}
-                          transition={{ duration: 0.12 }}
-                          className={`w-5 h-5 rounded-full transition-colors duration-100
-                            ${pin.length > i
-                              ? error ? 'bg-red-500' : 'bg-royal-600 shadow-lg shadow-royal-500/30'
-                              : 'bg-gray-200'}`} />
-                      ))}
+                      className={`flex items-center gap-3 rounded-xl px-4 py-3.5 border-2 bg-white transition-colors mb-3
+                        ${error ? 'border-red-400' : pin.length > 0 ? 'border-gray-400' : 'border-gray-200'}`}>
+                      <span className="text-sm font-bold text-gray-400 shrink-0">PIN</span>
+                      <div className="w-px h-4 bg-gray-200 shrink-0" />
+                      <input
+                        type={showPin ? 'text' : 'password'}
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={pin}
+                        autoFocus
+                        onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 4); setPin(v); setError(''); }}
+                        onKeyDown={e => { if (e.key === 'Enter') handlePinSubmit(); }}
+                        placeholder="● ● ● ●"
+                        className={`flex-1 text-xl font-black tracking-[0.3em] bg-transparent outline-none placeholder:text-gray-300 placeholder:tracking-[0.3em] ${error ? 'text-red-500' : 'text-gray-900'}`}
+                      />
+                      <button type="button" onClick={() => setShowPin(p => !p)} className="text-gray-300 hover:text-gray-500 transition-colors shrink-0">
+                        {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </motion.div>
 
                     {/* error - fixed height below dots */}
@@ -468,7 +467,7 @@ export default function Login({ onLogin }) {
                         setError('');
                         if (k === 'CLEAR') setPin('');
                         else if (k === 'back') setPin(p => p.slice(0, -1));
-                        else if (pin.length < 4) setPin(p => p + k);
+                        else if (pin.length < 4) setPin(p => p + String(k));
                       }} />
                     </div>
 
@@ -479,7 +478,7 @@ export default function Login({ onLogin }) {
                       disabled={loading || pin.length < 4 || isPinLocked}
                       className={`w-full mt-6 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all
                         ${pin.length === 4 && !isPinLocked
-                          ? 'bg-royal-700 text-white shadow-md shadow-royal-700/20 hover:bg-royal-600'
+                          ? 'bg-navy-700 text-white shadow-md shadow-navy-700/20 hover:bg-navy-800'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                       {loading
                         ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.75 }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />

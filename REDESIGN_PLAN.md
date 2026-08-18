@@ -156,9 +156,34 @@ Step 8 → Performance audit           (framer-motion cleanup)
 | `shadow-float`, `shadow-card` | `shadow-sm`, `shadow-md` |
 | gradient headers | flat navy `bg-[#1e3a5f]` |
 
+## Color Usage Rules
+
+### Primary Accent — Navy `#1e3a5f`
+- Buttons (btn-primary), active nav items, table headers
+- CTAs, focus rings, active states
+
+### Status Colors — ONLY for data context
+| Color | Use Case |
+|-------|----------|
+| 🔴 Red `#991b1b` | Due amount, error, cancelled, blocked |
+| 🟢 Green `#166534` | Paid, delivered, success, streak |
+| 🟡 Amber `#92400e` | Pending, warning, order window closed |
+| 🔵 Blue `#1e40af` | Dispatched, in transit, info banners |
+
+### Warm Neutrals — everything else
+- Page bg, card bg, borders, body text, labels
+- No color decoration on cards or sections
+
+### Rules
+1. Color only for DATA — not decoration
+2. Numbers/amounts → `font-mono` + status color
+3. Icons → colored only when conveying status
+4. Card backgrounds → always white/warm, never colored
+5. Gradients → only Login left panel, nowhere else
+6. Max 2 colors visible on any single screen at once
+
 ---
 
-## New Tailwind Color Tokens (to add)
 
 ```js
 navy: {
