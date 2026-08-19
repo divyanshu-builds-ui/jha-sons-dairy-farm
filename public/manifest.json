@@ -1,50 +1,29 @@
 {
-  "short_name": "Lucy Garden",
-  "name": "Lucy Garden — Fresh Dairy Supply | Madhubani",
-  "description": "Order fresh milk, dahi, paneer, ghee daily. Trusted dairy supply for retailers in Madhubani, Bihar. Daily delivery before 8 AM.",
-  "icons": [
-    {
-      "src": "/logo192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/logo512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
-    }
-  ],
+  "short_name": "Jha & Sons",
+  "name": "Jha & Sons Dairy Farm",
+  "description": "Fresh cow and buffalo milk delivered daily in Darbhanga, Bihar. 150+ customers served.",
+  "icons": [],
   "start_url": "/?source=pwa",
   "id": "/",
   "display": "standalone",
-  "theme_color": "#0136e4",
-  "background_color": "#f8fafc",
+  "theme_color": "#1e3a5f",
+  "background_color": "#f8f7f4",
   "orientation": "portrait",
   "scope": "/",
   "lang": "en-IN",
   "dir": "ltr",
-  "categories": ["food", "business", "shopping", "productivity"],
+  "categories": ["food", "business", "productivity"],
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "Place Order",
-      "short_name": "Order",
-      "url": "/order?source=shortcut",
-      "icons": [{"src": "/logo192.png", "sizes": "192x192"}]
+      "name": "Daily Supply",
+      "short_name": "Supply",
+      "url": "/admin/daily-supply?source=shortcut"
     },
     {
-      "name": "Track Order",
-      "short_name": "Track",
-      "url": "/track?source=shortcut",
-      "icons": [{"src": "/logo192.png", "sizes": "192x192"}]
-    },
-    {
-      "name": "My Ledger",
-      "short_name": "Ledger",
-      "url": "/ledger?source=shortcut",
-      "icons": [{"src": "/logo192.png", "sizes": "192x192"}]
+      "name": "Customers",
+      "short_name": "Customers",
+      "url": "/admin/customers?source=shortcut"
     }
   ]
 }

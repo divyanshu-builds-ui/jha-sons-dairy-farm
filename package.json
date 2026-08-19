@@ -1,11 +1,10 @@
 {
-  "name": "lucy-garden",
-  "version": "2.10.1.0",
+  "name": "jha-sons-dairy-farm",
+  "version": "1.0.0",
   "private": true,
   "dependencies": {
     "firebase": "^10.7.0",
     "framer-motion": "^12.38.0",
-    "jspdf": "^4.2.1",
     "lucide-react": "^1.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -23,12 +22,7 @@
     "deploy": "npm run build && firebase deploy"
   },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead"
-    ],
-    "development": [
-      "last 1 chrome version"
-    ]
+    "production": [">0.2%", "not dead"],
+    "development": ["last 1 chrome version"]
   }
 }

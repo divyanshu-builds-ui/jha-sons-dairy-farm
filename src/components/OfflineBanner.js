@@ -29,7 +29,7 @@ export default function OfflineBanner() {
       )}
       {showBack && !isOffline && (
         <motion.div initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -60, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-[200] bg-gradient-to-r from-mint-600 to-mint-500 text-white px-4 py-3 flex items-center justify-center gap-3 shadow-lg">
+          className="fixed top-0 left-0 right-0 z-[200] bg-green-600 text-white px-4 py-3 flex items-center justify-center gap-3 shadow-lg">
           <span className="text-sm font-bold">✓ Back Online</span>
         </motion.div>
       )}

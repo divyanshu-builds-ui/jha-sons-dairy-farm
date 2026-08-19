@@ -2,169 +2,136 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap");
 
-#root {
-	width: 100%;
-}
+#root { width: 100%; }
 
 @layer base {
-	html, body {
-		overscroll-behavior-y: contain;
-	}
-	body {
-		@apply bg-warm-50 font-sans text-warm-800 antialiased dark:bg-[#0f0e0d] dark:text-warm-100;
-		font-size: 14px;
-		line-height: 1.5;
-		-webkit-tap-highlight-color: transparent;
-		overflow-x: hidden;
-		overflow-y: auto;
-		-webkit-overflow-scrolling: touch;
-	}
-	h1, h2, h3, h4, h5, h6 {
-		font-family: 'Inter', system-ui, sans-serif;
-		font-weight: 700;
-	}
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-sand-50 font-sans text-sand-900 antialiased;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+  }
 }
 
 @layer components {
-	.btn-primary {
-		@apply bg-navy-700 hover:bg-navy-800 text-white font-semibold py-2.5 px-5 rounded-md
-		       transition-colors duration-150 active:scale-[0.97] text-sm;
-	}
-	.btn-ghost {
-		@apply bg-navy-50 hover:bg-navy-100 text-navy-700 font-medium py-2 px-4 rounded-md
-		       transition-colors duration-150 border border-navy-200 text-sm;
-	}
-	.btn-whatsapp {
-		@apply bg-[#25D366] hover:bg-[#1ebe5d] text-white font-semibold py-2.5 px-5 rounded-md
-		       transition-colors duration-150 active:scale-[0.97] text-sm;
-	}
-	.card {
-		@apply bg-white rounded-lg p-4 shadow-sm border border-warm-200
-		       dark:bg-[#1a1917] dark:border-[#2e2d2b];
-	}
-	.input-field {
-		@apply w-full px-3 py-2.5 bg-white border border-warm-200 rounded-sm
-		       focus:ring-2 focus:ring-navy-100 focus:border-navy-400 outline-none
-		       transition-colors duration-150 text-sm placeholder:text-warm-400
-		       dark:bg-[#1a1917] dark:border-[#2e2d2b] dark:text-warm-100
-		       dark:placeholder:text-warm-600 dark:focus:border-navy-600;
-	}
+
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold
+           rounded-lg transition-all duration-150 active:scale-[0.97]
+           select-none cursor-pointer;
+  }
+  .btn-primary {
+    @apply btn bg-olive-700 hover:bg-olive-800 text-white
+           text-sm px-5 py-2.5 shadow-olive;
+  }
+  .btn-primary-lg {
+    @apply btn bg-olive-700 hover:bg-olive-800 text-white
+           text-base px-7 py-3.5 shadow-olive;
+  }
+  .btn-outline {
+    @apply btn border-2 border-olive-700 text-olive-700
+           hover:bg-olive-50 text-sm px-5 py-2.5;
+  }
+  .btn-outline-lg {
+    @apply btn border-2 border-olive-700 text-olive-700
+           hover:bg-olive-50 text-base px-7 py-3.5;
+  }
+  .btn-ghost {
+    @apply btn text-sand-600 hover:text-sand-900 hover:bg-sand-100
+           text-sm px-4 py-2;
+  }
+  .btn-whatsapp {
+    @apply btn text-white text-sm px-5 py-2.5;
+    background-color: #25D366;
+  }
+  .btn-whatsapp:hover { background-color: #20b858; }
+  .btn-whatsapp-lg {
+    @apply btn text-white text-base px-7 py-3.5;
+    background-color: #25D366;
+  }
+  .btn-whatsapp-lg:hover { background-color: #20b858; }
+
+  /* ── Cards ───────────────────────────────────────────────────────────── */
+  .card {
+    @apply bg-sand-25 rounded-xl p-6 shadow-card border border-sand-200;
+  }
+  .card:hover { box-shadow: theme('boxShadow.card-hover'); }
+
+  /* ── Section layout ──────────────────────────────────────────────────── */
+  .container-site {
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  .section-pad {
+    @apply py-16 sm:py-20 lg:py-24;
+  }
+
+  /* ── Typography helpers ──────────────────────────────────────────────── */
+  .label-tag {
+    @apply text-2xs font-bold uppercase tracking-[0.14em] text-olive-600;
+  }
+  .heading-xl {
+    @apply text-4xl sm:text-5xl font-black text-sand-950 tracking-tight leading-[1.1];
+  }
+  .heading-lg {
+    @apply text-3xl font-black text-sand-950 tracking-tight;
+  }
+  .heading-md {
+    @apply text-2xl font-bold text-sand-900;
+  }
+  .heading-sm {
+    @apply text-lg font-bold text-sand-900;
+  }
+  .body-lg  { @apply text-base text-sand-600 leading-relaxed; }
+  .body-md  { @apply text-sm text-sand-600 leading-relaxed; }
+  .body-sm  { @apply text-xs text-sand-500; }
+
+  /* ── Badges ──────────────────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+           text-xs font-semibold border;
+  }
+  .badge-green  { @apply badge bg-emerald-50 text-emerald-700 border-emerald-200; }
+  .badge-gold   { @apply badge bg-gold-100 text-gold-700 border-gold-300; }
+  .badge-olive  { @apply badge bg-olive-100 text-olive-700 border-olive-200; }
+  .badge-sand   { @apply badge bg-sand-100 text-sand-600 border-sand-300; }
+
+  /* ── Divider ─────────────────────────────────────────────────────────── */
+  .divider { @apply border-t border-sand-200; }
 }
 
-/* Scrollbar */
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
 :root {
-	--scrollbar-track: #f0ede8;
-	--scrollbar-thumb: #c8c5be;
-	--scrollbar-thumb-hover: #9c9890;
+  --sb-track: #f2ede6;
+  --sb-thumb: #c8c4be;
+  --sb-hover: #a8a29e;
 }
-.dark {
-	--scrollbar-track: #1a1917;
-	--scrollbar-thumb: #2e2d2b;
-	--scrollbar-thumb-hover: #4a4845;
-}
-*::-webkit-scrollbar { width: 6px; height: 6px; }
-*::-webkit-scrollbar-track { background: var(--scrollbar-track); }
-*::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
-* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
-
-.scrollbar-hide::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar { display: none; }
-.scrollbar-hide, .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Shimmer for skeletons */
-@keyframes shimmer {
-	0%   { background-position: -200% 0; }
-	100% { background-position:  200% 0; }
-}
-
-/* Page fade-in */
-.animate-fade-in { animation: fadeIn 0.1s ease-out; }
-@keyframes fadeIn {
-	from { opacity: 0.7; }
-	to   { opacity: 1; }
-}
-
-/* Skeleton pulse — warm neutral */
-.animate-pulse {
-	background-image: linear-gradient(
-		110deg,
-		transparent 0%,
-		rgba(0,0,0,0.04) 40%,
-		rgba(0,0,0,0.02) 50%,
-		rgba(0,0,0,0.04) 60%,
-		transparent 100%
-	);
-	background-size: 200% 100%;
-	animation: shimmer 1.4s ease-in-out infinite;
-}
-.dark .animate-pulse {
-	background-image: linear-gradient(
-		110deg,
-		transparent 0%,
-		rgba(255,255,255,0.04) 40%,
-		rgba(255,255,255,0.02) 50%,
-		rgba(255,255,255,0.04) 60%,
-		transparent 100%
-	);
-	background-size: 200% 100%;
-	animation: shimmer 1.4s ease-in-out infinite;
-}
-
-/* Card hover — subtle */
-@media (hover: hover) {
-	.card:hover {
-		box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.08);
-	}
-}
-
-/* Button press */
-button:active, [role="button"]:active {
-	transition: transform 0.08s ease;
-}
-
-/* Font size zoom */
-html.font-small { zoom: 0.9; }
-html.font-large { zoom: 1.1; }
-
-/* Dev Console desktop text scaling */
-@media (min-width: 1024px) {
-	.dev-content [class*="text-[9px]"]  { font-size: 11px !important; }
-	.dev-content [class*="text-[10px]"] { font-size: 12px !important; }
-	.dev-content [class*="text-[11px]"] { font-size: 13px !important; }
-	.dev-content .text-xs { font-size: 13px !important; }
-	.dev-content .text-sm { font-size: 14px !important; }
-}
-
-/* Performance */
+*::-webkit-scrollbar        { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track  { background: var(--sb-track); }
+*::-webkit-scrollbar-thumb  { background: var(--sb-thumb); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--sb-hover); }
+*  { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); }
 @media (hover: none) {
-	*::-webkit-scrollbar { display: none; }
-	* { scrollbar-width: none; -ms-overflow-style: none; }
-	.card {
-		will-change: transform;
-		-webkit-backface-visibility: hidden;
-		backface-visibility: hidden;
-	}
+  *::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
 }
 
-/* Content visibility for long lists */
-.space-y-2\.5 > :nth-child(n+10),
-.space-y-2 > :nth-child(n+10),
-.grid > :nth-child(n+12) {
-	content-visibility: auto;
-	contain-intrinsic-size: 0 72px;
-}
+/* ── Page transition ─────────────────────────────────────────────────────── */
+.animate-fade-in { animation: fadeIn 0.2s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-img { content-visibility: auto; }
-
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-	*, *::before, *::after {
-		animation-duration: 0.01ms !important;
-		transition-duration: 0.01ms !important;
-	}
-}
-
-@media (prefers-reduced-motion: no-preference) {
-	html { scroll-behavior: smooth; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

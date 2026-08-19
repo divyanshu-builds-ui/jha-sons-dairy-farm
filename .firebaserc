@@ -1,5 +1,5 @@
 {
   "projects": {
-    "default": "lucy-garden"
+    "default": "your-firebase-project-id"
   }
 }
