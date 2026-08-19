@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+#root {
+	width: 100%;
+}
+
+@layer base {
+	html, body {
+		overscroll-behavior-y: contain;
+	}
+	body {
+		@apply bg-warm-50 font-sans text-warm-800 antialiased dark:bg-[#0f0e0d] dark:text-warm-100;
+		font-size: 14px;
+		line-height: 1.5;
+		-webkit-tap-highlight-color: transparent;
+		overflow-x: hidden;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+	h1, h2, h3, h4, h5, h6 {
+		font-family: 'Inter', system-ui, sans-serif;
+		font-weight: 700;
+	}
+}
+
+@layer components {
+	.btn-primary {
+		@apply bg-navy-700 hover:bg-navy-800 text-white font-semibold py-2.5 px-5 rounded-md
+		       transition-colors duration-150 active:scale-[0.97] text-sm;
+	}
+	.btn-ghost {
+		@apply bg-navy-50 hover:bg-navy-100 text-navy-700 font-medium py-2 px-4 rounded-md
+		       transition-colors duration-150 border border-navy-200 text-sm;
+	}
+	.btn-whatsapp {
+		@apply bg-[#25D366] hover:bg-[#1ebe5d] text-white font-semibold py-2.5 px-5 rounded-md
+		       transition-colors duration-150 active:scale-[0.97] text-sm;
+	}
+	.card {
+		@apply bg-white rounded-lg p-4 shadow-sm border border-warm-200
+		       dark:bg-[#1a1917] dark:border-[#2e2d2b];
+	}
+	.input-field {
+		@apply w-full px-3 py-2.5 bg-white border border-warm-200 rounded-sm
+		       focus:ring-2 focus:ring-navy-100 focus:border-navy-400 outline-none
+		       transition-colors duration-150 text-sm placeholder:text-warm-400
+		       dark:bg-[#1a1917] dark:border-[#2e2d2b] dark:text-warm-100
+		       dark:placeholder:text-warm-600 dark:focus:border-navy-600;
+	}
+}
+
+/* Scrollbar */
+:root {
+	--scrollbar-track: #f0ede8;
+	--scrollbar-thumb: #c8c5be;
+	--scrollbar-thumb-hover: #9c9890;
+}
+.dark {
+	--scrollbar-track: #1a1917;
+	--scrollbar-thumb: #2e2d2b;
+	--scrollbar-thumb-hover: #4a4845;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+*::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+
+.scrollbar-hide::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar { display: none; }
+.scrollbar-hide, .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Shimmer for skeletons */
+@keyframes shimmer {
+	0%   { background-position: -200% 0; }
+	100% { background-position:  200% 0; }
+}
+
+/* Page fade-in */
+.animate-fade-in { animation: fadeIn 0.1s ease-out; }
+@keyframes fadeIn {
+	from { opacity: 0.7; }
+	to   { opacity: 1; }
+}
+
+/* Skeleton pulse — warm neutral */
+.animate-pulse {
+	background-image: linear-gradient(
+		110deg,
+		transparent 0%,
+		rgba(0,0,0,0.04) 40%,
+		rgba(0,0,0,0.02) 50%,
+		rgba(0,0,0,0.04) 60%,
+		transparent 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.4s ease-in-out infinite;
+}
+.dark .animate-pulse {
+	background-image: linear-gradient(
+		110deg,
+		transparent 0%,
+		rgba(255,255,255,0.04) 40%,
+		rgba(255,255,255,0.02) 50%,
+		rgba(255,255,255,0.04) 60%,
+		transparent 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* Card hover — subtle */
+@media (hover: hover) {
+	.card:hover {
+		box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.08);
+	}
+}
+
+/* Button press */
+button:active, [role="button"]:active {
+	transition: transform 0.08s ease;
+}
+
+/* Font size zoom */
+html.font-small { zoom: 0.9; }
+html.font-large { zoom: 1.1; }
+
+/* Dev Console desktop text scaling */
+@media (min-width: 1024px) {
+	.dev-content [class*="text-[9px]"]  { font-size: 11px !important; }
+	.dev-content [class*="text-[10px]"] { font-size: 12px !important; }
+	.dev-content [class*="text-[11px]"] { font-size: 13px !important; }
+	.dev-content .text-xs { font-size: 13px !important; }
+	.dev-content .text-sm { font-size: 14px !important; }
+}
+
+/* Performance */
+@media (hover: none) {
+	*::-webkit-scrollbar { display: none; }
+	* { scrollbar-width: none; -ms-overflow-style: none; }
+	.card {
+		will-change: transform;
+		-webkit-backface-visibility: hidden;
+		backface-visibility: hidden;
+	}
+}
+
+/* Content visibility for long lists */
+.space-y-2\.5 > :nth-child(n+10),
+.space-y-2 > :nth-child(n+10),
+.grid > :nth-child(n+12) {
+	content-visibility: auto;
+	contain-intrinsic-size: 0 72px;
+}
+
+img { content-visibility: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	html { scroll-behavior: smooth; }
+}
