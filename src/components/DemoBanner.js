@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import BRAND from '../utils/config';
 
-export default function DemoBanner() {
+export default function DemoBanner({ onClose }) {
   const [closed, setClosed] = useState(false);
+
+  function handleClose() {
+    setClosed(true);
+    onClose && onClose();
+  }
+
   if (closed) return null;
 
   return (
@@ -10,8 +16,8 @@ export default function DemoBanner() {
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10000,
       background: '#2d4428', color: 'white',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '7px 40px 7px 16px',
-      fontSize: '12px', fontFamily: 'system-ui, -apple-system, sans-serif',
+      padding: '7px 36px 7px 12px',
+      fontSize: '11px', fontFamily: 'system-ui, -apple-system, sans-serif',
       gap: '6px', lineHeight: 1.4,
     }}>
       <span style={{ opacity: 0.7 }}>🛠️</span>
@@ -28,7 +34,7 @@ export default function DemoBanner() {
           Get in touch
         </a>
       </span>
-      <button onClick={() => setClosed(true)} style={{
+      <button onClick={handleClose} style={{
         position: 'absolute', right: '12px',
         background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)',
         cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '2px 4px',

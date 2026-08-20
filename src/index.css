@@ -71,7 +71,7 @@
     @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
   }
   .section-pad {
-    @apply py-16 sm:py-20 lg:py-24;
+    @apply py-12 sm:py-16 lg:py-20;
   }
 
   /* ── Typography helpers ──────────────────────────────────────────────── */
@@ -82,7 +82,7 @@
     @apply text-4xl sm:text-5xl font-black text-sand-950 tracking-tight leading-[1.1];
   }
   .heading-lg {
-    @apply text-3xl font-black text-sand-950 tracking-tight;
+    @apply text-2xl sm:text-3xl font-black text-sand-950 tracking-tight;
   }
   .heading-md {
     @apply text-2xl font-bold text-sand-900;
