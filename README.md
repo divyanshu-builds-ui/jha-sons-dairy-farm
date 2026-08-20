@@ -30,6 +30,17 @@ Public promotional website for Jha & Sons Dairy Farm, Kaluahi, Madhubani, Bihar.
 npm run build
 ```
 
+## Repository
+
+**Correct repo:** https://github.com/divyanshu-builds-ui/jha-sons-dairy-farm.git
+
+```
+git remote add origin https://github.com/divyanshu-builds-ui/jha-sons-dairy-farm.git
+git push origin dev
+```
+
+> ⚠️ Do NOT push to `Lucy-Garden` repo — that is a different project.
+
 ## Brand Config
 
 All business name, contact, and brand values are in:
